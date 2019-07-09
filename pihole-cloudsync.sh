@@ -41,23 +41,45 @@ do
 	cd $pihole_dir || exit
 	cp $ad_list $black_list $blacklist_list $whitelist_list $regex_list $personal_git_dir
 	cd $personal_git_dir || exit
-	
+
         CHANGED=$(git --work-tree=$personal_git_dir status --porcelain)
         if [ -n "${CHANGED}" ]; then
                 echo 'changed';
         else
-                echo 'not changed';
+                echo 'Remote repo matches local Pi-hole lists. No further action required.';
+		exit 0
         fi
 
     # Pull / Download
     elif [ "$arg" == "--pull" ] || [ "$arg" == "--download" ] || [ "$arg" == "-d" ]
     then
         echo "Pull (Download) argument detected."
+	cd $personal_git_dir || exit
+	CHANGED=$(git --work-tree=$personal_git_dir status --porcelain)
+        if [ -n "${CHANGED}" ]; then
+                echo 'changed';
+        else
+                echo 'Local Pi-hole lists match remote repo. No further action required.';
+                exit 0
+        fi
 
     # Help
     elif [ "$arg" == "--help" ] || [ "$arg" == "-h" ]
     then
-        echo "Help argument detected."
+	cat << EOF
+Usage: pihole-cloudsync <option>
+
+Options:
+  --push, --upload, -u		Push (upload) your Pi-hole lists to GitHub
+  --pull, --download, -d	Pull (download) your lists from GitHub
+  --help, -h			Show this help dialog
+
+Examples:
+  'pihole --push' to push/upload your lists to GitHub
+  'pihole --pull' to pull/download your lists from GitHub
+
+Project Home: https://github.com/stevejenkins/pihole-cloudsync
+EOF
 
     # Invalid commang line argument was passed
     else
