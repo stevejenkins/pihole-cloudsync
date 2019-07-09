@@ -22,7 +22,7 @@ whitelist_list='whitelist.txt'
 regex_list='regex.list'
 
 # Only used for debugging
-set -x
+# set -x
 
 # Check to see whether command line argument was provided
 if [ -z "$1" ]
