@@ -5,7 +5,7 @@ href="https://pi-hole.net/">Pi-hole</a> blocklist, blacklist, whitelist, and reg
 # Why pihole-cloudsync?
 I run six Pi-holes on three different networks at three different physical locations. I wanted all six Pi-holes to share the same blocklists, blacklists, whitelists, and regex files, but it was time-consuming to manually synchronize all of them.
 
-I wanted to use Pi-hole's built-in web UI to manage *one* set of lists on *one* Pi-hole and then securely synchronize an unlimited number of additional Pi-holes. I couldn't find an existing script that did exactly what I wanted... so I wrote `pihole-cloudsync`.
+I wanted to use Pi-hole's built-in web UI to manage only *one* set of lists on *one* Pi-hole -- and then securely synchronize an unlimited number of additional Pi-holes. I couldn't find an existing script that did exactly what I wanted... so I wrote `pihole-cloudsync`.
 
 Feedback, suggestions, bug fixes, and code contributions are welcome.
 
