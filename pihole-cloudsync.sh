@@ -5,7 +5,7 @@
 # pihole-cloudsync
 # Helper script to keep multiple Pi-holes' lists synchronized via Git
 
-# Version 1.2 - July 10, 2019 - Steve Jenkins (stevejenkins.com)
+# Version 1.3 - July 10, 2019 - Steve Jenkins (stevejenkins.com)
 
 # SETUP
 # Follow the instructions in the README to set up your own private Git
@@ -57,7 +57,7 @@ push () {
 	$SUDO cp $ad_list $black_list $blacklist_list $whitelist_list $regex_list $personal_git_dir
 	cd $personal_git_dir || exit
 
-        CHANGED=$($SUDO git --work-tree=$personal_git_dir status --porcelain)
+        CHANGED=$($SUDO git --work-tree=$personal_git_dir status --porcelain > /dev/null)
         if [ -n "${CHANGED}" ]; then
                 echo 'Local Pi-hole lists are different than remote Git repo. Updating remote repo...';
 		rightnow=$(date +"%B %e, %Y %l:%M%p")
@@ -74,7 +74,7 @@ push () {
 
 pull () {
 	cd $personal_git_dir || exit
-	CHANGED=$($SUDO git remote update && git --work-tree=$personal_git_dir status --porcelain)
+	CHANGED=$($SUDO git remote update && git --work-tree=$personal_git_dir status --porcelain > /dev/null)
 	if [ -n "${CHANGED}" ]; then
                 echo 'Remote Git repo is different than local Pi-hole lists. Updating local lists...';
                 # Remove -q option if you don't want to run in "quiet" mode
