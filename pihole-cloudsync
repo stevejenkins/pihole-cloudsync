@@ -4,7 +4,7 @@
 # pihole-cloudsync
 # Helper script to keep multiple Pi-holes' lists synchronized via Git
 
-# Version 2.0 - July 10, 2019 - Steve Jenkins (stevejenkins.com)
+# Version 2.1 - July 10, 2019 - Steve Jenkins (stevejenkins.com)
 
 # SETUP
 # Follow the instructions in the README to set up your own private Git
@@ -60,7 +60,8 @@ pull_initialize () {
 	$SUDO git reset --hard origin/master -q
 	$SUDO cp $ad_list $black_list $blacklist_list $whitelist_list $regex_list $pihole_dir
 	$SUDO pihole -g
-	echo "Local Pi-hole initialized in Pull mode and first pull successfully completed. Future pulls can now be perfomed with 'pihole-cloudsync --pull' ";
+	echo "Local Pi-hole initialized in Pull mode and first pull successfully completed.";
+	echo "Future pulls can now be perfomed with 'pihole-cloudsync --pull'.";
 }
 push () {
 	cd $pihole_dir || exit
