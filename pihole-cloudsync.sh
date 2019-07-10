@@ -1,11 +1,10 @@
 #!/bin/bash
 
 ###########################################################################
-
 # pihole-cloudsync
 # Helper script to keep multiple Pi-holes' lists synchronized via Git
 
-# Version 1.6 - July 10, 2019 - Steve Jenkins (stevejenkins.com)
+# Version 1.7 - July 10, 2019 - Steve Jenkins (stevejenkins.com)
 
 # SETUP
 # Follow the instructions in the README to set up your own private Git
@@ -25,9 +24,7 @@
 #  'pihole-cloudsync --pull' will pull (download) your lists from a remote Git repo
 
 # Project Home: https://github.com/stevejenkins/pihole-cloudsync
-
 ###########################################################################
-
 # CONSTANTS
 personal_git_dir='/usr/local/bin/my-pihole-lists'
 pihole_dir='/etc/pihole'
@@ -36,6 +33,8 @@ black_list='black.list'
 blacklist_list='blacklist.txt'
 whitelist_list='whitelist.txt'
 regex_list='regex.list'
+###########################################################################
+# SHOULDN'T NEED TO EDIT BELOW THIS LINE
 
 # Force sudo if not running with root privileges
 SUDO=''
@@ -46,12 +45,12 @@ fi
 # FUNCTIONS
 initialize () {
 	cd $pihole_dir || exit
+	$SUDO touch $ad_list $black_list $blacklist_list $whitelist_list $regex_list
 	$SUDO cp $ad_list $black_list $blacklist_list $whitelist_list $regex_list $personal_git_dir
 	cd $personal_git_dir || exit
 	$SUDO git add .
 	echo "Local Pi-hole lists added to local Git repo. Run 'pihole-cloudsync --push' to push to remote Git repo.";
 }
-
 push () {
 	cd $pihole_dir || exit
 	$SUDO cp $ad_list $black_list $blacklist_list $whitelist_list $regex_list $personal_git_dir
@@ -70,7 +69,6 @@ push () {
 		exit 0
         fi
 }
-
 pull () {
 	cd $personal_git_dir || exit
 	CHANGED=$($SUDO git remote update && git --work-tree=$personal_git_dir status --porcelain)
@@ -88,41 +86,34 @@ pull () {
                 exit 0
         fi
 }
-
-#######################################################
-
-# Check to see whether command line option was provided
+###########################################################################
+# Check to see whether a command line option was provided
 if [ -z "$1" ]
   then
     echo "Missing command line option. Try --push, --pull, or --help."
     exit 1
 fi
-
-# Determine which action to perform (Push, Pull, or Help)
+# Determine which action to perform (Init, Push, Pull, or Help)
 for arg in "$@"
 do
-
     # Initialize - adds primary Pi-hole's lists to local Git repo before first push/upload
     if [ "$arg" == "--initialize" ] || [ "$arg" == "--init" ] || [ "$arg" == "-i" ]
     then
 	echo "$arg option detected. Initializing local Git repo for Push/Upload.";
 	initialize
 	exit 0
-
     # Push / Upload - Pushes updated local Pi-hole lists to remote Git repo
     elif [ "$arg" == "--push" ] || [ "$arg" == "--upload" ] || [ "$arg" == "--up" ] || [ "$arg" == "-u" ]
     then
 	echo "$arg option detected. Running in Push/Upload mode."
 	push
 	exit 0
-
     # Pull / Download - Pulls updated Pi-hole lists from remote Git repo
     elif [ "$arg" == "--pull" ] || [ "$arg" == "--download" ] || [ "$arg" == "--down" ]|| [ "$arg" == "-d" ]
     then
         echo "$arg option detected. Running in Pull/Download mode."
 	pull
         exit 0
-
     # Help - Displays help dialog
     elif [ "$arg" == "--help" ] || [ "$arg" == "-h" ] || [ "$arg" == "-?" ]
     then
@@ -142,7 +133,7 @@ Examples:
 Project Home: https://github.com/stevejenkins/pihole-cloudsync
 EOF
 
-    # Invalid commang line option was passed
+    # Invalid command line option was passed
     else
 	echo "Invalid command line option. Try --push, --pull, or --help."
 	exit 1
