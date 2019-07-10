@@ -44,7 +44,12 @@ do
 
         CHANGED=$(git --work-tree=$personal_git_dir status --porcelain)
         if [ -n "${CHANGED}" ]; then
-                echo 'changed';
+                echo 'Local Pi-hole lists are newer than remote repo. Updating repo...';
+		rightnow=$(date +"%B %e, %Y %l:%M%p")
+		echo $rightnow;
+		git commit -a -m "Updated $rightnow"
+		git push
+		exit 0
         else
                 echo 'Remote repo matches local Pi-hole lists. No further action required.';
 		exit 0
