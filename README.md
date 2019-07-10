@@ -12,7 +12,7 @@ Feedback, suggestions, bug fixes, and code contributions are welcome.
 # How pihole-cloudsync Works
 `pihole-cloudsync` allows you to use any Pi-hole on any network to act as the "Master" or "Primary." This is the only Pi-hole whose list settings you will need to manage using Pi-hole's web UI. The Primary Pi-hole then uses `pihole-cloudsync` in **Push** mode to *upload* its blocklist, blacklist, whitelist, and regex files to a private Git repository that you control (such as GitHub).
 
-All other Pi-holes that you wish to keep syncronized use `pihole-cloudsync` in **Pull** mode to *download* the Primary Pi-hole's blocklist, blacklist, whitelist, and regex files from your private Git repository.
+All other Pi-holes that you wish to keep synchronized use `pihole-cloudsync` in **Pull** mode to *download* the Primary Pi-hole's blocklist, blacklist, whitelist, and regex files from your private Git repository.
 
 The script is designed to work with any Git repo that your Pi-holes have access to, but I have only personally tested it with GitHub.
 
