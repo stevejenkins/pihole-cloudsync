@@ -32,7 +32,7 @@ Prior to running `pihole-cloudsync`, you must first create a new dedicated Git r
 1. Install Git (on Raspbian/Debian do `sudo apt-get install git`).
 2. Do `cd /usr/local/bin`.
 3. Install `pihole-cloudsync` with `sudo git clone https://github.com/stevejenkins/pihole-cloudsync.git`.
-4. Create your private local Git repo with `sudo git clone https://github.com/<yourusername>/my-pihole-lists` (paste the URL you copied from GitHub).
+4. Create your private local Git repo with `sudo git clone https://github.com/<yourusername>/my-pihole-lists.git` (paste the URL you copied from GitHub).
 5. If you're using a repo name other than `my-pihole-lists`, edit `/usr/local/bin/pihole-cloudsync` and edit the `personal_git_dir` variable to match your local Git repo location.
 6. Run `/usr/local/bin/pihole-cloudsync --init` to copy your Primary Pi-hole's list files from `/etc/pihole` and add them to your new local Git repo. You only need to use the `--init` option on your Primary, since it's the only one that will "push" your lists to the remote Git repo.
 7. Run `/usr/local/bin/pihole-cloudsync --push` to push/upload your Primary Pi-hole's list from your local Git repo to your remote Git repo. You will have to manually enter your GitHub email address and password the first time you do this, but read below for how to save your login credentials so you can run this script unattended.
@@ -41,7 +41,7 @@ Prior to running `pihole-cloudsync`, you must first create a new dedicated Git r
 1. Install Git (on Raspbian/Debian do `sudo apt-get install git`)
 2. Do `cd /usr/local/bin`
 3. Install `pihole-cloudsync` with `sudo git clone https://github.com/stevejenkins/pihole-cloudsync.git`
-4. Create your private local Git repo with `sudo git clone https://github.com/<yourusername>/my-pihole-lists` (paste the URL you copied from GitHub)
+4. Create your private local Git repo with `sudo git clone https://github.com/<yourusername>/my-pihole-lists.git` (paste the URL you copied from GitHub)
 5. If you're using a repo name other than `my-pihole-lists`, edit `/usr/local/bin/pihole-cloudsync` and edit the `personal_git_dir` variable to match your local Git repo location.
 6. Run `/usr/local/bin/pihole-cloudsync --pull` to pull/download your Primary Pi-hole's lists from your remote Git repo to your local Git repo. You will have to manually enter your GitHub email address and password the first time you do this, but read below for how to save your login credentials so you can run this script unattended.
 7. The script will automatically copy the downloaded file(s) to your Pi-hole directory and tell Pi-hole to do a `pihole -g` command to update its lists.
