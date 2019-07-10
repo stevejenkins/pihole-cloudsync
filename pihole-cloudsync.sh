@@ -29,7 +29,7 @@
 ###########################################################################
 
 # CONSTANTS
-personal_git_dir='/usr/local/bin/steve-pihole-lists'
+personal_git_dir='/usr/local/bin/my-pihole-lists'
 pihole_dir='/etc/pihole'
 ad_list='adlists.list'
 black_list='black.list'
