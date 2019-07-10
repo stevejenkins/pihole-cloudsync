@@ -7,6 +7,8 @@ I run six Pi-holes on three different networks at three different physical locat
 
 I wanted to use Pi-hole's built-in web UI to manage only *one* set of lists on *one* Pi-hole -- and then securely synchronize an unlimited number of additional Pi-holes. I couldn't find an existing script that did exactly what I wanted... so I wrote `pihole-cloudsync`.
 
+`pihole-cloudsync` is lightweight enough to use if you're only syncing 2 Pi-holes on a home network, but powerful enough to synchronize virtually *unlimited* Pi-holes on an *unlimited* number of networks. 
+
 Feedback, suggestions, bug fixes, and code contributions are welcome.
 
 # How pihole-cloudsync Works
