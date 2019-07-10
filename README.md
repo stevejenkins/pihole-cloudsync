@@ -17,7 +17,7 @@ All other Pi-holes that you wish to keep syncronized use `pihole-cloudsync` in *
 The script is designed to work with any Git repo that your Pi-holes have access to, but I have only personally tested it with GitHub.
 
 # Setup
-Prior to running `pihole-cloudsync`, you must first create a new dedicated Git respository to store your lists, then clone that new repository to the Master/Primary Pi-hole and all secondary Pi-holes that you wish to keep in sync. The easiest way to do that is to fork the blank `my-pihole-lists` example GitHub repository made for that purpose.
+Prior to running `pihole-cloudsync`, you must first create a new dedicated Git respository to store your lists, then clone that new repository to all Pi-holes (both Primary and Secondary) that you wish to keep in sync. The easiest way to do that is to fork my `my-pihole-lists` example GitHub repository made for that purpose. Don't worry if my personal lists in that repo are different than yours. You'll overwrite your forked version of the repo with your own Pi-hole lists the first time you run `pihole-cloudsync` in **Push** mode.
 
 **On GitHub**
 1. Sign into GitHub
