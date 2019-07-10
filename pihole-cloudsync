@@ -4,7 +4,7 @@
 # pihole-cloudsync
 # Helper script to keep multiple Pi-holes' lists synchronized via Git
 
-# Version 1.11 - July 10, 2019 - Steve Jenkins (stevejenkins.com)
+# Version 2.0 - July 10, 2019 - Steve Jenkins (stevejenkins.com)
 
 # SETUP
 # Follow the instructions in the README to set up your own private Git
@@ -16,7 +16,8 @@
 # OPTIONS:
 #  --push, --upload, --up, -u		Push (upload) your Pi-hole lists to a remote Git repo
 #  --pull, --download, --down, -d	Pull (download) your lists from a remote Git repo
-#  --initialize, --init, -i		Add local Pi-hole lists to local Git repo before first push
+#  --pushinit				Initialize Primary Pi-hole in "Push" mode
+#  --pullinit				Initialize Secondary Pi-hole in "Pull" mode
 #  --help, -h, -?			Show this help dialog
 
 # EXAMPLES:
@@ -43,13 +44,23 @@ if [ "$EUID" -ne 0 ]
 fi
 
 # FUNCTIONS
-initialize () {
+push_initialize () {
 	cd $pihole_dir || exit
 	$SUDO touch $ad_list $black_list $blacklist_list $whitelist_list $regex_list
 	$SUDO cp $ad_list $black_list $blacklist_list $whitelist_list $regex_list $personal_git_dir
 	cd $personal_git_dir || exit
 	$SUDO git add .
-	echo "Local Pi-hole lists added to local Git repo. Run 'pihole-cloudsync --push' to push to remote Git repo.";
+	echo "Local Pi-hole initialized in Push mode and local lists were added to local Git repo. Run 'pihole-cloudsync --push' to push to remote Git repo.";
+}
+pull_initialize () {
+	cd $personal_git_dir || exit
+	$SUDO git remote update > /dev/null
+	# Remove -q option if you don't want to run in "quiet" mode
+	$SUDO git fetch --all -q
+	$SUDO git reset --hard origin/master -q
+	$SUDO cp $ad_list $black_list $blacklist_list $whitelist_list $regex_list $pihole_dir
+	$SUDO pihole -g
+	echo "Local Pi-hole initialized in Pull mode and first pull successfully completed. Future pulls can now be perfomed with 'pihole-cloudsync --pull' ";
 }
 push () {
 	cd $pihole_dir || exit
@@ -99,10 +110,16 @@ fi
 for arg in "$@"
 do
     # Initialize - adds primary Pi-hole's lists to local Git repo before first push/upload
-    if [ "$arg" == "--initialize" ] || [ "$arg" == "--init" ] || [ "$arg" == "-i" ]
+    if [ "$arg" == "--pushinit" ]
     then
 	echo "$arg option detected. Initializing local Git repo for Push/Upload.";
-	initialize
+	push_initialize
+	exit 0
+    # Initialize - adds primary Pi-hole's lists to local Git repo before first push/upload
+    elif [ "$arg" == "--pullinit" ]
+    then
+	echo "$arg option detected. Initializing local Git repo for Pull/Download.";
+	pull_initialize
 	exit 0
     # Push / Upload - Pushes updated local Pi-hole lists to remote Git repo
     elif [ "$arg" == "--push" ] || [ "$arg" == "--upload" ] || [ "$arg" == "--up" ] || [ "$arg" == "-u" ]
@@ -125,7 +142,8 @@ Usage: pihole-cloudsync <option>
 Options:
   --push, --upload, --up, -u		Push (upload) your Pi-hole lists to a remote Git repo
   --pull, --download, --down, -d	Pull (download) your lists from a remote Git repo
-  --initialize, --init, -i		Add local Pi-hole lists to local Git repo before first push
+  --pushinit				Initialize Primary Pi-hole in "Push" mode
+  --pullinit				Initialize Secondary Pi-hole in "Pull" mode
   --help, -h, -?			Show this help dialog
 
 Examples:
