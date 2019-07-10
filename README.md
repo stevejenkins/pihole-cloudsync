@@ -52,6 +52,7 @@ In order to automate or run `pihole-cloudsync` unattended, you will need to eith
 The SSH key approach is for more advanced users who don't need me to explain how to do it. To store your Git credentials locally, do the following on each Pi-hole:
 
 `cd /usr/local/bin/my-pihole-lists`
+
 `git config --global credential.helper store`
 
 The next time you pull from or push to the remote repository, you'll be prompted for your username and password. But you won't have to re-enter them after that. So do a simple:
