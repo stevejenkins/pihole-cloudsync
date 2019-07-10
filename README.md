@@ -72,7 +72,7 @@ Once you can successfully run `pihole-cloudsync --push` from the command line on
 
 And once you can successfully run `pihole-cloudsync --pull` from the command line on each of your Secondary Pi-holes, create a cron entry that runs 5 minutes after your Primary pushes any changes, such as:
 
-`05 01,13 * * * /usr/local/bin/pihole-cloudsync/pihole-cloudsync --push > /dev/null 2>&1 #Push Master Pi-hole Lists to remote Git repo`
+`05 01,13 * * * /usr/local/bin/pihole-cloudsync/pihole-cloudsync --push > /dev/null 2>&1 #Pull Master Pi-hole Lists from remote Git repo`
 
 # Disclaimer
 You are totally responsible for anything this script does to your system. Whether it launches a nice game of Tic Tac Toe or global thermonuclear war, you're on your own. :)
