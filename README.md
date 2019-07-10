@@ -10,7 +10,7 @@ I wanted to use Pi-hole's built-in web UI to manage *one* set of lists on *one* 
 Feedback, suggestions, bug fixes, and code contributions are welcome.
 
 # How pihole-cloudsync Works
-`pihole-cloudsync` allows you to use any Pi-hole on any network to act as the "Master" or "Primary." The Primary Pi-hole uses `pihole-cloudsync` in **Push** mode to *upload* its blocklist, blacklist, whitelist, and regex files to a private Git repository that you control (such as GitHub).
+`pihole-cloudsync` allows you to use any Pi-hole on any network to act as the "Master" or "Primary." This is the only Pi-hole whose list settings you will need to manage using Pi-hole's web UI. The Primary Pi-hole then uses `pihole-cloudsync` in **Push** mode to *upload* its blocklist, blacklist, whitelist, and regex files to a private Git repository that you control (such as GitHub).
 
 All other Pi-holes that you wish to keep syncronized use `pihole-cloudsync` in **Pull** mode to *download* the Primary Pi-hole's blocklist, blacklist, whitelist, and regex files from your private Git repository.
 
@@ -44,7 +44,7 @@ Prior to running `pihole-cloudsync`, you must first create a new dedicated Git r
 6. Run `/usr/local/bin/pihole-cloudsync --pull` to pull/download your Primary Pi-hole's lists from your remote Git repo to your local Git repo. You will have to manually enter your GitHub email address and password the first time you do this, but read below for how to save your login credentials so you can run this script unattended.
 7. The script will automatically copy the downloaded file(s) to your Pi-hole directory and tell Pi-hole to do a `pihole -g` command to update its lists.
 
-# Running `pihole-cloudsync` Unattended
+# Running pihole-cloudsync Unattended
 **The following steps must be performed on each Pi-hole you wish to use with `pihole-cloudsync`.**
 
 In order to automate or run `pihole-cloudsync` unattended, you will need to either store your GitHub login credentials locally or create an SSH key for your Pi-hole's root user and upload the public key to GitHub. You will need to do this on the Primary Pi-hole as well as all Secondary Pi-holes.
