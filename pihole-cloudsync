@@ -20,7 +20,7 @@ update='July 11, 2019'
 #  --initpull				Initialize Secondary Pi-hole in "Pull" mode
 #  --push, --upload, --up, -u		Push (upload) your Pi-hole lists to a remote Git repo
 #  --pull, --download, --down, -d	Pull (download) your lists from a remote Git repo
-#  --help, -h, -?			Show this help dialog
+#  --help, -h, -?			Show the current version of pihole-cloudsync
 #  --version, -v			Show version number
 
 # EXAMPLES:
@@ -163,7 +163,7 @@ EOF
 	then
 	echo 'pihole-cloudsync v'$version' - Updated '$update;
 	echo 'https://github.com/stevejenkins/pihole-cloudsync';
-	
+
     # Invalid command line option was passed
     else
 	echo "Invalid command line option. Try --push, --pull, or --help."
