@@ -5,6 +5,8 @@
 # Helper script to keep multiple Pi-holes' lists synchronized via Git
 
 # Version 2.2 - July 10, 2019 - Steve Jenkins (stevejenkins.com)
+version='2.3'
+update='July 11, 2019'
 
 # SETUP
 # Follow the instructions in the README to set up your own private Git
@@ -14,11 +16,12 @@
 # USAGE: pihole-cloudsync <option>
 
 # OPTIONS:
-#  --push, --upload, --up, -u		Push (upload) your Pi-hole lists to a remote Git repo
-#  --pull, --download, --down, -d	Pull (download) your lists from a remote Git repo
 #  --initpush				Initialize Primary Pi-hole in "Push" mode
 #  --initpull				Initialize Secondary Pi-hole in "Pull" mode
+#  --push, --upload, --up, -u		Push (upload) your Pi-hole lists to a remote Git repo
+#  --pull, --download, --down, -d	Pull (download) your lists from a remote Git repo
 #  --help, -h, -?			Show this help dialog
+#  --version, -v			Show version number
 
 # EXAMPLES:
 #  'pihole-cloudsync --push' will push (upload) your lists to a remote Git repo
@@ -146,6 +149,7 @@ Options:
   --initpush				Initialize Primary Pi-hole in "Push" mode
   --initpull				Initialize Secondary Pi-hole in "Pull" mode
   --help, -h, -?			Show this help dialog
+  --version, -v				Show the current version of pihole-cloudsync
 
 Examples:
   'pihole-cloudsync --push' will push (upload) your lists to a Git repo
@@ -154,6 +158,12 @@ Examples:
 Project Home: https://github.com/stevejenkins/pihole-cloudsync
 EOF
 
+    # Version - Displays version number
+    elif [ "$arg" == "--version" ] || [ "$arg" == "-v" ]
+	then
+	echo 'pihole-cloudsync v'$version' - Updated '$update;
+	echo 'https://github.com/stevejenkins/pihole-cloudsync';
+	
     # Invalid command line option was passed
     else
 	echo "Invalid command line option. Try --push, --pull, or --help."
