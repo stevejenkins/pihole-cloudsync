@@ -46,7 +46,7 @@ Prior to running `pihole-cloudsync`, you must first create a new dedicated Git r
 6. Run `/usr/local/bin/pihole-cloudsync/pihole-cloudsync --initpull` to initialize the local Pi-hole in Pull/Download mode. You will have to manually enter your GitHub email address and password the first time you do this, but read below for how to save your login credentials so you can run this script unattended. The `--initpull` option will also perform your first pull automatically and only needs to be run once on each Secondary Pi-hole. All future pulls can be performed with `/usr/local/bin/pihole-cloudsync/pihole-cloudsync --pull`.
 7. Running `pihole-cloudsync --pull` will pull/download your Primary Pi-hole's lists from your remote Git repo to your Secondary Pi-hole's local Git repo. The `--pull` option will automatically copy the downloaded file(s) to your Pi-hole directory and tell Pi-hole to do a `pihole -g` command to update its lists.
 
-##Alternative Configuration: All Secondary (no Primary) Pi-holes##
+## Alternative Configuration: All Secondary (no Primary) Pi-holes
 Once you've successfully pushed your Primary Pi-hole's lists to your remote Git repo, you could optionally choose to edit/manage your whitelist, blacklists, and regex files directly on your Git repo using your cloud-based Git provider's built-in editing tools. If you go this route, you'll need to re-configure what was previously your Primary Pi-hole to run in Pull mode (which will turn it into a Secondary). Do:
 
 `/usr/local/bin/pihole-cloudsync/pihole-cloudsync --initpull`
