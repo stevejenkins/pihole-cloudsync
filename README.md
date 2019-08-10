@@ -1,13 +1,13 @@
 # pihole-cloudsync
 A script to help synchronize <a target="_blank" 
-href="https://pi-hole.net/">Pi-hole</a> blocklist, blacklist, whitelist, and regex files across multiple Pi-holes using a Git repository.
+href="https://pi-hole.net/">Pi-hole</a> blocklist, blacklist, whitelist, regex, and `/etc/hosts` files across multiple Pi-holes using a Git repository.
 
 # Why pihole-cloudsync?
-I run six Pi-holes on three different networks at three different physical locations. I wanted all six Pi-holes to share the same blocklists, blacklists, whitelists, and regex files, but it was time-consuming to manually synchronize all of them (modify the local Pi-holes, VPN into the second network and modify those, then VPN into the third network and modify those).
+I run six Pi-holes on three different networks at three different physical locations. I wanted all six Pi-holes to share the same blocklists, blacklists, whitelists, and regex files, but it was time-consuming to manually synchronize all of them (modify the local Pi-holes, VPN into the second network and modify those, then VPN into the third network and modify those). I also wanted the ability to share a common section of `/etc/hosts` between multiple Pi-holes so that the Pi-hole UI stats display the proper local hostnames instead of IP addresses.
 
 I wanted to use Pi-hole's built-in web UI to manage only *one* set of lists on *one* Pi-hole -- and then securely synchronize an unlimited number of additional Pi-holes. I couldn't find an existing script that did exactly what I wanted... so I wrote `pihole-cloudsync`.
 
-`pihole-cloudsync` is lightweight enough to use if you're only syncing 2 Pi-holes on a home network, but powerful enough to synchronize virtually *unlimited* Pi-holes on an *unlimited* number of networks. 
+`pihole-cloudsync` is lightweight enough to use if you're only syncing 2 Pi-holes on a home network, but powerful enough to synchronize virtually *unlimited* Pi-holes on an *unlimited* number of networks.
 
 Feedback, suggestions, bug fixes, and code contributions are welcome.
 
