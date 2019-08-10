@@ -4,9 +4,9 @@
 # pihole-cloudsync
 # Helper script to keep multiple Pi-holes' lists synchronized via Git
 
-# Version 2.2 - July 10, 2019 - Steve Jenkins (stevejenkins.com)
-version='2.3'
-update='July 11, 2019'
+# Version 3.0 - August 10, 2019 - Steve Jenkins (stevejenkins.com)
+version='3.0'
+update='August 10, 2019'
 
 # SETUP
 # Follow the instructions in the README to set up your own private Git
@@ -38,6 +38,12 @@ blacklist_list='blacklist.txt'
 whitelist_list='whitelist.txt'
 regex_list='regex.list'
 ###########################################################################
+# FOR SHARED HOSTS MODE ONLY
+# RE-INITIALIZE WITH --initpush OR --initpull AFTER ENABLING THIS MODE
+enable_hosts=off
+local_hosts='/etc/hosts'
+shared_hosts='sharedhosts.txt'
+###########################################################################
 # SHOULDN'T NEED TO EDIT BELOW THIS LINE
 
 # Force sudo if not running with root privileges
@@ -46,11 +52,24 @@ if [ "$EUID" -ne 0 ]
   then SUDO='sudo'
 fi
 
+# Case-insensitive check for Shared Hosts Mode
+shared_hosts_mode=''
+if [ $(echo "$enable_hosts" |tr [:upper:] [:lower:]) == "yes" ] || [ $(echo "$enable_hosts" |tr [:upper:] [:lower:]) == "y" ] || [ $(echo "$enable_hosts" |tr [:upper:] [:lower:]) == "on" ] || [ $(echo "$enable_hosts" |tr [:upper:] [:lower:]) == "true" ] || [ $(echo "$enable_hosts" |tr [:upper:] [:lower:]) == "1" ]; then
+	shared_hosts_mode='1'
+	echo "Shared Hosts Mode ENABLED.";
+else
+	echo "Shared Hosts Mode DISABLED.";
+fi
+
 # FUNCTIONS
 push_initialize () {
 	cd $pihole_dir || exit
 	$SUDO touch $ad_list $black_list $blacklist_list $whitelist_list $regex_list
 	$SUDO cp $ad_list $black_list $blacklist_list $whitelist_list $regex_list $personal_git_dir
+	if [ "$shared_hosts_mode" ]; then
+		$SUDO sed -n '/# SHARED HOSTS - START/,/# SHARED HOSTS - END/p' $local_hosts | $SUDO sed '1d;$d' > /tmp/$shared_hosts
+		$SUDO cp /tmp/$shared_hosts $personal_git_dir
+	fi
 	cd $personal_git_dir || exit
 	$SUDO git add .
 	echo "Local Pi-hole initialized in Push mode and local lists were added to local Git repo. Run 'pihole-cloudsync --push' to push to remote Git repo.";
@@ -62,6 +81,13 @@ pull_initialize () {
 	$SUDO git fetch --all -q
 	$SUDO git reset --hard origin/master -q
 	$SUDO cp $ad_list $black_list $blacklist_list $whitelist_list $regex_list $pihole_dir
+	if [ "$shared_hosts_mode" ]; then
+		$SUDO cp $local_hosts /tmp/hosts
+		$SUDO sed -e '/# SHARED HOSTS - START/,/# SHARED HOSTS - END/{/^# SHARED HOSTS/!d}' \
+		-e "/# SHARED HOSTS - START.*$/r $shared_hosts" \
+		--in-place=.bak /tmp/hosts
+		$SUDO mv /tmp/hosts $local_hosts
+	fi
 	$SUDO pihole -g
 	echo "Local Pi-hole initialized in Pull mode and first pull successfully completed.";
 	echo "Future pulls can now be perfomed with 'pihole-cloudsync --pull'.";
@@ -69,6 +95,10 @@ pull_initialize () {
 push () {
 	cd $pihole_dir || exit
 	$SUDO cp $ad_list $black_list $blacklist_list $whitelist_list $regex_list $personal_git_dir
+	if [ "$shared_hosts_mode" ]; then
+		$SUDO sed -n '/# SHARED HOSTS - START/,/# SHARED HOSTS - END/p' $local_hosts | $SUDO sed '1d;$d' > /tmp/$shared_hosts
+		$SUDO cp /tmp/$shared_hosts $personal_git_dir
+	fi
 	cd $personal_git_dir || exit
 	$SUDO git remote update > /dev/null
         CHANGED=$($SUDO git --work-tree=$personal_git_dir status --porcelain)
@@ -95,6 +125,13 @@ pull () {
                 $SUDO git fetch --all -q
 		$SUDO git reset --hard origin/master -q
 		$SUDO cp $ad_list $black_list $blacklist_list $whitelist_list $regex_list $pihole_dir
+		if [ "$shared_hosts_mode" ]; then
+			$SUDO cp $local_hosts /tmp/hosts
+			$SUDO sed -e '/# SHARED HOSTS - START/,/# SHARED HOSTS - END/{/^# SHARED HOSTS/!d}' \
+			-e "/# SHARED HOSTS - START.*$/r $shared_hosts" \
+			--in-place=.bak /tmp/hosts
+			$SUDO mv /tmp/hosts $local_hosts
+		fi
 		$SUDO pihole -g
                 echo 'Done!';
                 exit 0
@@ -161,7 +198,7 @@ EOF
     # Version - Displays version number
     elif [ "$arg" == "--version" ] || [ "$arg" == "-v" ]
 	then
-	echo 'pihole-cloudsync v'$version' - Updated '$update;
+	echo 'pihole-cloudsync v'$version' - Updated '"$update";
 	echo 'https://github.com/stevejenkins/pihole-cloudsync';
 
     # Invalid command line option was passed
