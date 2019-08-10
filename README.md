@@ -51,7 +51,72 @@ Prior to running `pihole-cloudsync`, you must first create a new dedicated Git r
 7. Running `pihole-cloudsync --pull` will pull/download your Primary Pi-hole's lists from your remote Git repo to your Secondary Pi-hole's local Git repo. The `--pull` option will automatically copy the downloaded file(s) to your Pi-hole directory and tell Pi-hole to do a `pihole -g` command to update its lists.
 
 ## Shared Hosts Mode
-(under construction)
+Because the local hostname information is unique to each Pi-hole, it's impractical to simply clone the Primary Pi-hole's entire `/etc/hosts` file to all Secondary Pi-holes. However, `pihole-cloudsync` allows you to designate a portion of your Primary Pi-hole's `/etc/hosts` file that can be inserted into each Secondary Pi-hole's `/etc/hosts` file by enabdling **Shared Hosts** mode on your Primary and Secondary Pi-holes.
+
+Here's an example `/etc/hosts` file on a **Primary** Pi-hole:
+```
+127.0.0.1	localhost
+::1		localhost ip6-localhost ip6-loopback
+ff02::1		ip6-allnodes
+ff02::2		ip6-allrouters
+127.0.1.1	Pi-hole
+
+192.168.1.1     gateway.local
+192.168.1.105   pihole1.local
+192.168.1.106   pihole2.local
+192.168.1.117   desktop1.local
+192.168.1.118   laptop1.local
+192.168.1.200   iot1.local
+fe80::e123:74ed:b5e:34a2        pihole1.local
+fe80::f123:73d6:fe15:f5dd       pihole2.local
+```
+
+To allow `pihole-cloudsync` to know which hosts you want to sync to your Secondary Pi-holes, enclose the shared host information in your Primary Pi-hole's `/etc/hosts` file between the following exact comments:
+```
+# SHARED HOSTS - START
+(shared host entries go here)
+# SHARED HOSTS - END
+```
+
+So your **Primary** Pi-hole's `/etc/hosts` file should look something like this:
+
+```
+127.0.0.1	localhost
+::1		localhost ip6-localhost ip6-loopback
+ff02::1		ip6-allnodes
+ff02::2		ip6-allrouters
+127.0.1.1	Pi-hole
+
+# SHARED HOSTS - START
+192.168.1.1     gateway.local
+192.168.1.105   pihole1.local
+192.168.1.106   pihole2.local
+192.168.1.117   desktop1.local
+192.168.1.118   laptop1.local
+192.168.1.200   iot1.local
+fe80::e123:74ed:b5e:34a2        pihole1.local
+fe80::f123:73d6:fe15:f5dd       pihole2.local
+# SHARED HOSTS - END
+```
+On all **Secondary** Pi-holes, simply insert the **START** and **END** comments at the bottom of their `/etc/hosts` files like this:
+
+```
+127.0.0.1	localhost
+::1		localhost ip6-localhost ip6-loopback
+ff02::1		ip6-allnodes
+ff02::2		ip6-allrouters
+127.0.1.1	Pi-hole2
+
+# SHARED HOSTS - START
+# SHARED HOSTS - END
+```
+When `pihole-cloudsync` runs in **Pull** mode with the Shared Hosts mode enabled, it will insert the shared hosts between those comments.
+
+**IMPORTANT:** You must enter the comments exactly as shown, since `pihole-cloudsync` searches for those exact comments in order to syncronize properly.
+
+Enable Shared Hosts mode by editing `/usr/local/bin/pihole-cloudsync/pihole-cloudsync`. Change the `enable_hosts` option to `on` (you could also use `1`, `y`, `yes`, or `true` in upper or lower case). Make sure you've added the necessary comments to your Primary Pi-hole's `/etc/hosts` file running `pihole-cloudsync` in Shared Hosts mode.
+
+If you decide to enable Shared Hosts mode after you've already been running `pihole-cloudsync` for a while, simply re-run in `--initpush` or `--initpull` mode (depending on whether you are configuring a Primary or Secondary Pi-hole) after setting `enable_hosts` to `on` in  `/usr/local/bin/pihole-cloudsync/pihole-cloudsync`.
 
 ## Alternative Configuration: All Secondary (no Primary) Pi-holes
 Once you've successfully pushed your Primary Pi-hole's lists to your remote Git repo, you could optionally choose to edit/manage your whitelist, blacklists, and regex files directly on your Git repo using your cloud-based Git provider's built-in editing tools. If you go this route, you'll need to re-configure what was previously your Primary Pi-hole to run in Pull mode (which will turn it into a Secondary). Do:
