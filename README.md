@@ -174,7 +174,7 @@ systemctl start pihole-cloudsync-update.timer
 ```
 
 ### Details
-1. **.service** - `/etc/systemd/system/pihole-cloudsync-update.service` - The core service file.  Configured as a 'oneshot' in order to be run via a [systemd timer](https://wiki.archlinux.org/index.php/Systemd/Timers).
+1. **.service** - `/etc/systemd/system/pihole-cloudsync-update.service` - The core service file.  Configured as a 'oneshot' in order to be run via a [systemd timer](https://wiki.archlinux.org/index.php/Systemd/Timers)
 ```ini
 [Unit]
 Description=PiHole Cloud Sync Data Puller service
@@ -189,7 +189,7 @@ Slice=pihole-cloudsync-update.slice
 WantedBy=multi-user.target
 ```
 
-2. **.timer** - `/etc/systemd/system/pihole-cloudsync-update.timer` - The timer file.  Determines when the _.service_ file is executed.  Systemd timers are highly flexible and can be executed under a viriety of timed and trigger-based circumstances.  The [ArchLinux systemd/Timer documentation](https://wiki.archlinux.org/index.php/Systemd/Timers) are some of the best around.  See their [examples](https://wiki.archlinux.org/index.php/Systemd/Timers#Examples) for many ways to configure this systemd unit
+2. **.timer** - `/etc/systemd/system/pihole-cloudsync-update.timer` - The timer file.  Determines when the _.service_ file is executed.  Systemd timers are highly flexible and can be executed under a variety of timed and trigger-based circumstances.  The [ArchLinux systemd/Timer documentation](https://wiki.archlinux.org/index.php/Systemd/Timers) is some of the best around.  See their [examples](https://wiki.archlinux.org/index.php/Systemd/Timers#Examples) for many mnore ways to configure this systemd timer unit
 ```ini
 [Unit]
 Description=PiHole Cloud Synd Data Puller timer
@@ -204,7 +204,7 @@ OnUnitActiveSec=1h
 WantedBy=timers.target
 ```
 
-3. **.slice** - `/etc/systemd/system/pihole-cloudsync-update.slice` - The slice file.  Determines how much of the total system resources this service is allowed to consume.  Since PiHole is a DNS server and we humans like the internet to be as snappy as possible, this is done to ensure that there woll always be _plenty_ of room for the PiHole sevice to operate answer queries without being obstructed by updates.  If you'd like to know more about systemd slices, check out [this wiki page](https://wikitech.wikimedia.org/wiki/Systemd_resource_control) for details.
+3. **.slice** - `/etc/systemd/system/pihole-cloudsync-update.slice` - The slice file.  Determines how much of the total system resources this service is allowed to consume.  Since PiHole is a DNS server and we humans like the internet to be as snappy as possible, this slice is put in to keep the update process in check and ensure that there will always be _plenty_ of room for the PiHole sevice to operate and answer queries without being obstructed by pihole-cloudsync updates.  If you'd like to know more about systemd slices, check out [this wiki page](https://wikitech.wikimedia.org/wiki/Systemd_resource_control) for details
 ```ini
 [Unit]
 Description=PiHole Cloud Sync Puller resource limiter slice
