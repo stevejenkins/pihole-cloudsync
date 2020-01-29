@@ -161,7 +161,7 @@ And once you can successfully run `pihole-cloudsync --pull` from the command lin
 **NOTE:** On Raspian, the script won't execute via cron without the `sudo` command (as shown above). If you're having trouble getting the script to run unattended on Raspian, try including `sudo` in the cron command.
 
 ## Automating with systemd
-pihole-cloudsync pulls can be automated fairly easily with systemd, given your distro runs it.  Once you can successfully run `pihole-cloudsync --push` from the command line on your primary Pi-Hole, you may proceed with systemd setup.  There are three files you must install in order to ensure a stable and non-intrusve update process: The _.service_, the _.timer_, and the _.slice_.
+pihole-cloudsync pulls can be automated fairly easily with systemd, given your distro runs it.  Once you can successfully run `pihole-cloudsync --pull` from the command line on each of your Secondary Pi-holes, you may proceed with systemd setup.  There are three files you must install in order to ensure a stable and non-intrusve update process: The _.service_, the _.timer_, and the _.slice_.
 
 ### Quick Start
 1. Copy the each of the three unit files in the "Details" section below into `/etc/systemd/system` on your machine
