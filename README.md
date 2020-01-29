@@ -144,6 +144,9 @@ to enter and save your credentials. Now you can run `pihole-cloudsync` unattende
 
 Again, **the above steps must be performed on each Pi-hole you wish to use with `pihole-cloudsync`.**
 
+# Automation
+There are two options for automating unattended runs pihole-cloudsync, [cron](##Automating-with-cron) and [systemd](##Automating-with-systemd).  See below for details or use the links to skip right to your desired section
+
 ## Automating with cron
 Once each Pi-hole's local Git repo has been configured to save your login credentials, you can automate your Primary Pi-hole's "push" and your Secondary Pi-holes' "pull" in any number of ways. The simplest way is to run a simple cron job a few times a day.
 
