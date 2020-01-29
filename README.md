@@ -192,7 +192,7 @@ Slice=pihole-cloudsync-update.slice
 WantedBy=multi-user.target
 ```
 
-2. **.timer** - `/etc/systemd/system/pihole-cloudsync-update.timer` - The timer file.  Determines when the _.service_ file is executed.  Systemd timers are highly flexible and can be executed under a variety of timed and trigger-based circumstances.  The [ArchLinux systemd/Timer documentation](https://wiki.archlinux.org/index.php/Systemd/Timers) is some of the best around.  See their [examples](https://wiki.archlinux.org/index.php/Systemd/Timers#Examples) for many mnore ways to configure this systemd timer unit
+2. **.timer** - `/etc/systemd/system/pihole-cloudsync-update.timer` - The timer file.  Determines when the _.service_ file is executed.  Systemd timers are highly flexible and can be executed under a variety of timed and trigger-based circumstances.  The [ArchLinux systemd/Timer documentation](https://wiki.archlinux.org/index.php/Systemd/Timers) is some of the best around.  See their [examples](https://wiki.archlinux.org/index.php/Systemd/Timers#Examples) for many more ways to configure this systemd timer unit
 ```ini
 [Unit]
 Description=PiHole Cloud Synd Data Puller timer
