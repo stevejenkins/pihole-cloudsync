@@ -207,7 +207,7 @@ OnUnitActiveSec=1h
 WantedBy=timers.target
 ```
 
-3. **.slice** - `/etc/systemd/system/pihole-cloudsync-update.slice` - The slice file.  Determines how much of the total system resources this service is allowed to consume.  Since PiHole is a DNS server and we humans like the internet to be as snappy as possible, this slice is put in to keep the update process in check and ensure that there will always be _plenty_ of room for the PiHole sevice to operate and answer queries without being obstructed by pihole-cloudsync updates.  If you'd like to know more about systemd slices, check out [this wiki page](https://wikitech.wikimedia.org/wiki/Systemd_resource_control) for details
+3. **.slice** - `/etc/systemd/system/pihole-cloudsync-update.slice` - The slice file.  Determines how much of the total system resources the _.service_ is allowed to consume.  Since PiHole is a DNS server and we humans like the internet to be as snappy as possible, this slice is put in to keep the update process in check and ensure that there will always be _plenty_ of room for the PiHole sevice to operate and answer queries without being obstructed by pihole-cloudsync updates.  If you'd like to know more about systemd slices, check out [this wiki page](https://wikitech.wikimedia.org/wiki/Systemd_resource_control) for details
 ```ini
 [Unit]
 Description=PiHole Cloud Sync Puller resource limiter slice
