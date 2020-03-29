@@ -123,7 +123,7 @@ Once you've successfully pushed your Primary Pi-hole's lists to your remote Git 
 
 `/usr/local/bin/pihole-cloudsync/pihole-cloudsync --initpull`
 
-That will re-initialize the local Pi-hole in Pull/Download mode. If you had previously automated your Primary Pi-hole's periodic pushes, be sure to edit your `crontab` so that `pihole-cloudsync` runs in Pull mode instead of Push mode.
+That will re-initialize the local Pi-hole in Pull/Download mode. If you had previously automated your Primary Pi-hole's periodic pushes, be sure to edit your `crontab` (or systemd config) so that `pihole-cloudsync` runs in Pull mode instead of Push mode.
 
 # Running pihole-cloudsync Unattended
 **The following steps must be performed on each Pi-hole you wish to use with `pihole-cloudsync`.**
@@ -145,10 +145,10 @@ to enter and save your credentials. Now you can run `pihole-cloudsync` unattende
 Again, **the above steps must be performed on each Pi-hole you wish to use with `pihole-cloudsync`.**
 
 # Automation
-There are two options for automating unattended runs of pihole-cloudsync, [cron](#Automating-with-cron) and [systemd](#Automating-with-systemd).  See below for details or use the links to skip right to your desired section
+Once each Pi-hole's local Git repo has been configured to save your login credentials, you can automate your Primary Pi-hole's "push" and your Secondary Pi-holes' "pull" in any number of ways. The simplest method is to run a [cron job](#Automating-with-cron) a few times a day. If you want more flexibilty over schedule and resource use, you can also use [systemd](#Automating-with-systemd) to automate. Both methods are explained below.
 
 ## Automating with cron
-Once each Pi-hole's local Git repo has been configured to save your login credentials, you can automate your Primary Pi-hole's "push" and your Secondary Pi-holes' "pull" in any number of ways. The simplest way is to run a simple cron job a few times a day.
+The simplest way is to automate `pihole-cloudsync` is to set a "push" cron job on your Primary Pi-hole that runs a few times a day, then set a "pull" cron job on each Secondary Pi-hole that pulls in any changes a few minutes after your Primary pushes them.
 
 Once you can successfully run `pihole-cloudsync --push` from the command line on your Primary Pi-hole, do `crontab -e` (or `sudo crontab -e` if you're not logged in as the root user) and create a cron entry such as:
 
@@ -161,11 +161,11 @@ And once you can successfully run `pihole-cloudsync --pull` from the command lin
 **NOTE:** On Raspian, the script won't execute via cron without the `sudo` command (as shown above). If you're having trouble getting the script to run unattended on Raspian, try including `sudo` in the cron command.
 
 ## Automating with systemd
-pihole-cloudsync pulls can be automated fairly easily with systemd, given your distro runs it.  Once you can successfully run `pihole-cloudsync --pull` from the command line on each of your Secondary Pi-holes, you may proceed with systemd setup.  There are three files you must install in order to ensure a stable and non-intrusve update process: The _.service_, the _.timer_, and the _.slice_.
+`pihole-cloudsync` pulls can also be automated with systemd, if your Pi-hole is running on a systemd-supported distro. Once you're able to successfully run `pihole-cloudsync --pull` from the command line on each of your Secondary Pi-holes, you can proceed with systemd setup. You must install three `[Unit]` files on your Pi-hole to ensure a stable and non-intrusve update process: a `.service` file, a `.timer` file, and a `.slice` file.
 
 ### Quick Start
-1. Copy the each of the three unit files in the "Details" section below into `/etc/systemd/system` on your machine
-2. Tell systemd we changed its configuration files: `systemctl daemon-reload`
+1. Copy the each of the three `[Unit]` files in the **systemd Details** section below into `/etc/systemd/system` on your Pi-hole
+2. Tell systemd you changed its configuration files with `systemctl daemon-reload`
 3. Enable and start the service/timer
 ```bash
 # Enable the relevant configs
@@ -176,8 +176,8 @@ systemctl enable pihole-cloudsync-update.timer
 systemctl start pihole-cloudsync-update.timer
 ```
 
-### Details
-1. **.service** - `/etc/systemd/system/pihole-cloudsync-update.service` - The core service file.  Configured as a 'oneshot' in order to be run via a [systemd timer](https://wiki.archlinux.org/index.php/Systemd/Timers)
+### systemd Details
+1. **.service** - `/etc/systemd/system/pihole-cloudsync-update.service` - The core service file.  Configured as a 'oneshot' in order to be run via a [systemd timer](https://wiki.archlinux.org/index.php/Systemd/Timers).
 ```ini
 [Unit]
 Description=PiHole Cloud Sync Data Puller service
@@ -192,7 +192,7 @@ Slice=pihole-cloudsync-update.slice
 WantedBy=multi-user.target
 ```
 
-2. **.timer** - `/etc/systemd/system/pihole-cloudsync-update.timer` - The timer file.  Determines when the _.service_ file is executed.  Systemd timers are highly flexible and can be executed under a variety of timed and trigger-based circumstances.  The [ArchLinux systemd/Timer documentation](https://wiki.archlinux.org/index.php/Systemd/Timers) is some of the best around.  See their [examples](https://wiki.archlinux.org/index.php/Systemd/Timers#Examples) for many more ways to configure this systemd timer unit
+2. **.timer** - `/etc/systemd/system/pihole-cloudsync-update.timer` - The timer file.  Determines when the `.service` file is executed. systemd timers are highly flexible and can be executed under a variety of timed and trigger-based circumstances. The [ArchLinux systemd/Timer documentation](https://wiki.archlinux.org/index.php/Systemd/Timers) is some of the best around. See their [examples](https://wiki.archlinux.org/index.php/Systemd/Timers#Examples) for many more ways to configure this systemd timer unit.
 ```ini
 [Unit]
 Description=PiHole Cloud Synd Data Puller timer
@@ -207,7 +207,7 @@ OnUnitActiveSec=1h
 WantedBy=timers.target
 ```
 
-3. **.slice** - `/etc/systemd/system/pihole-cloudsync-update.slice` - The slice file.  Determines how much of the total system resources the _.service_ is allowed to consume.  Since PiHole is a DNS server and we humans like the internet to be as snappy as possible, this slice is put in to keep the update process in check and ensure that there will always be _plenty_ of room for the PiHole sevice to operate and answer queries without being obstructed by pihole-cloudsync updates.  If you'd like to know more about systemd slices, check out [this wiki page](https://wikitech.wikimedia.org/wiki/Systemd_resource_control) for details
+3. **.slice** - `/etc/systemd/system/pihole-cloudsync-update.slice` - The slice file.  Determines how much of the total system resources the `.service` is allowed to consume. This slice is in place to keep the update process in check and ensure that there will always be *plenty* of room for the Pi-hole service to answer DNS queries without being obstructed by potential `pihole-cloudsync` updates. If you'd like to learn more about systemd slices, check out [this wiki page](https://wikitech.wikimedia.org/wiki/Systemd_resource_control).
 ```ini
 [Unit]
 Description=PiHole Cloud Sync Puller resource limiter slice
@@ -216,6 +216,7 @@ Before=slices.target
 [Slice]
 CPUQuota=50%
 ```
+*Special thanks to [Conroman16](https://github.com/Conroman16) for contributing the systemd automation instructions*
 
 # Disclaimer
 You are totally responsible for anything this script does to your system. Whether it launches a nice game of Tic Tac Toe or global thermonuclear war, you're on your own. :)
