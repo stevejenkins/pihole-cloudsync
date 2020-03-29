@@ -33,5 +33,8 @@ One of the new features of Pi-hole v5 is a **Custom DNS** tool that replicates `
 
 I recommend Pi-hole v5 users set the `enable_hosts` variable in the `pihole-cloudsync` script to **off** and manually migrate their shared hosts into Pi-hole v5 using the Custom DNS page in the admin UI.
 
+# Known Issues
+The only issue I know of currently is that because Pi-hole now stores all its information in a single database file, that single file can easily be larger than the 50MB that Github recommends. I currently have it working just fine with a DB file that's currently over 70MB. Github allows it but throws a filesize warning when doing a "push." I may eventually get around to using GitHub's large file management system, but for now this works.
+
 # Disclaimer
 As always, you are totally responsible for anything this script does to your system. Whether it launches a nice game of Tic Tac Toe or global thermonuclear war, you're on your own. :)
