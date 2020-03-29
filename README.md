@@ -144,6 +144,9 @@ to enter and save your credentials. Now you can run `pihole-cloudsync` unattende
 
 Again, **the above steps must be performed on each Pi-hole you wish to use with `pihole-cloudsync`.**
 
+# Automation
+There are two options for automating unattended runs of pihole-cloudsync, [cron](#Automating-with-cron) and [systemd](#Automating-with-systemd).  See below for details or use the links to skip right to your desired section
+
 ## Automating with cron
 Once each Pi-hole's local Git repo has been configured to save your login credentials, you can automate your Primary Pi-hole's "push" and your Secondary Pi-holes' "pull" in any number of ways. The simplest way is to run a simple cron job a few times a day.
 
@@ -156,6 +159,63 @@ And once you can successfully run `pihole-cloudsync --pull` from the command lin
 `05 01,07,13,19 * * * sudo /usr/local/bin/pihole-cloudsync/pihole-cloudsync --pull > /dev/null 2>&1 #Pull Master Pi-hole Lists from remote Git repo`
 
 **NOTE:** On Raspian, the script won't execute via cron without the `sudo` command (as shown above). If you're having trouble getting the script to run unattended on Raspian, try including `sudo` in the cron command.
+
+## Automating with systemd
+pihole-cloudsync pulls can be automated fairly easily with systemd, given your distro runs it.  Once you can successfully run `pihole-cloudsync --pull` from the command line on each of your Secondary Pi-holes, you may proceed with systemd setup.  There are three files you must install in order to ensure a stable and non-intrusve update process: The _.service_, the _.timer_, and the _.slice_.
+
+### Quick Start
+1. Copy the each of the three unit files in the "Details" section below into `/etc/systemd/system` on your machine
+2. Tell systemd we changed its configuration files: `systemctl daemon-reload`
+3. Enable and start the service/timer
+```bash
+# Enable the relevant configs
+systemctl enable pihole-cloudsync-update.service
+systemctl enable pihole-cloudsync-update.timer
+
+# Start the timer
+systemctl start pihole-cloudsync-update.timer
+```
+
+### Details
+1. **.service** - `/etc/systemd/system/pihole-cloudsync-update.service` - The core service file.  Configured as a 'oneshot' in order to be run via a [systemd timer](https://wiki.archlinux.org/index.php/Systemd/Timers)
+```ini
+[Unit]
+Description=PiHole Cloud Sync Data Puller service
+Wants=pihole-cloudsync-update.timer
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/pihole-cloudsync --pull
+Slice=pihole-cloudsync-update.slice
+
+[Install]
+WantedBy=multi-user.target
+```
+
+2. **.timer** - `/etc/systemd/system/pihole-cloudsync-update.timer` - The timer file.  Determines when the _.service_ file is executed.  Systemd timers are highly flexible and can be executed under a variety of timed and trigger-based circumstances.  The [ArchLinux systemd/Timer documentation](https://wiki.archlinux.org/index.php/Systemd/Timers) is some of the best around.  See their [examples](https://wiki.archlinux.org/index.php/Systemd/Timers#Examples) for many more ways to configure this systemd timer unit
+```ini
+[Unit]
+Description=PiHole Cloud Synd Data Puller timer
+Requires=pihole-cloudsync-update.service
+
+[Timer]
+Unit=pihole-cloudsync-update.service
+OnBootSec=15
+OnUnitActiveSec=1h
+
+[Install]
+WantedBy=timers.target
+```
+
+3. **.slice** - `/etc/systemd/system/pihole-cloudsync-update.slice` - The slice file.  Determines how much of the total system resources the _.service_ is allowed to consume.  Since PiHole is a DNS server and we humans like the internet to be as snappy as possible, this slice is put in to keep the update process in check and ensure that there will always be _plenty_ of room for the PiHole sevice to operate and answer queries without being obstructed by pihole-cloudsync updates.  If you'd like to know more about systemd slices, check out [this wiki page](https://wikitech.wikimedia.org/wiki/Systemd_resource_control) for details
+```ini
+[Unit]
+Description=PiHole Cloud Sync Puller resource limiter slice
+Before=slices.target
+
+[Slice]
+CPUQuota=50%
+```
 
 # Disclaimer
 You are totally responsible for anything this script does to your system. Whether it launches a nice game of Tic Tac Toe or global thermonuclear war, you're on your own. :)
