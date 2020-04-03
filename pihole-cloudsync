@@ -5,8 +5,8 @@
 # Helper script to keep multiple Pi-holes' lists synchronized via Git
 
 # Version 4.0 - March 28, 2020 - Steve Jenkins (stevejenkins.com)
-version='4.0'
-update='March 28, 2020'
+version='4.1'
+update='April 2, 2020'
 
 # SETUP
 # Follow the instructions in the README to set up your own private Git
@@ -39,6 +39,7 @@ blacklist_list='blacklist.txt'
 whitelist_list='whitelist.txt'
 regex_list='regex.list'
 gravity_db='gravity.db'
+custom_list='custom.list'
 ###########################################################################
 # FOR SHARED HOSTS MODE ONLY
 # RE-INITIALIZE WITH --initpush OR --initpull AFTER ENABLING THIS MODE
@@ -67,8 +68,8 @@ fi
 push_initialize () {
 	cd $pihole_dir || exit
 	if [ "$pihole_version" == "5" ]; then
-		$SUDO touch $gravity_db
-		$SUDO cp $gravity_db $personal_git_dir
+		$SUDO touch $gravity_db $custom_list
+		$SUDO cp $gravity_db $custom_list $personal_git_dir
 	else
 		$SUDO touch $ad_list $black_list $blacklist_list $whitelist_list $regex_list
 		$SUDO cp $ad_list $black_list $blacklist_list $whitelist_list $regex_list $personal_git_dir
@@ -90,7 +91,7 @@ pull_initialize () {
 	$SUDO git reset --hard origin/master -q
 	if [ "$pihole_version" == "5" ]; then
 		$SUDO service pihole-FTL stop
-		$SUDO cp $gravity_db $pihole_dir
+		$SUDO cp $gravity_db $custom_list $pihole_dir
 		$SUDO service pihole-FTL start
 	else
 		$SUDO cp $ad_list $black_list $blacklist_list $whitelist_list $regex_list $pihole_dir
@@ -110,7 +111,7 @@ pull_initialize () {
 push () {
 	cd $pihole_dir || exit
         if [ "$pihole_version" == "5" ]; then
-                $SUDO cp $gravity_db $personal_git_dir
+                $SUDO cp $gravity_db $custom_list $personal_git_dir
 	else
 		$SUDO cp $ad_list $black_list $blacklist_list $whitelist_list $regex_list $personal_git_dir
 	fi
@@ -146,7 +147,7 @@ pull () {
 		$SUDO git reset --hard origin/master -q
 		if [ "$pihole_version" == "5" ]; then
 			$SUDO service pihole-FTL stop
-			$SUDO cp $gravity_db $pihole_dir
+			$SUDO cp $gravity_db $custom_list $pihole_dir
 			$SUDO service pihole-FTL start
 		else
 			$SUDO cp $ad_list $black_list $blacklist_list $whitelist_list $regex_list $pihole_dir
