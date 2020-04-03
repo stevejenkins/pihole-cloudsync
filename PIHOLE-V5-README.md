@@ -34,7 +34,7 @@ One of the new features of Pi-hole v5 is a **Custom DNS** tool that replicates `
 I recommend Pi-hole v5 users set the `enable_hosts` variable in the `pihole-cloudsync` script to **off** and manually enter their shared hosts into their Primary Pi-hole v5 server by using the Custom DNS page in Pi-hole's admin web UI.
 
 # Known Issues
-The only issue I know of currently is that because Pi-hole now stores nearly all its information in a single database file, that single file can easily be larger than the 50MB that Github recommends. I currently have it working just fine with a DB file that's currently over 70MB. Github allows it but throws a filesize warning when doing a "push." You can get rid of this error by adding GitHub's large file management system called "Git LFS," but you can't do it to only one or two hosts: **all** Secondary Pi-holes and your Primary Pi-hole must be configured to use Git LFS, or they will be unable to sync.
+The only issue I know of currently is that because Pi-hole now stores nearly all its information in a single database file, that single file can easily be larger than the 50MB that Github recommends. I currently have it working just fine with a DB file that's currently over 70MB. Github allows it but throws a filesize warning when doing a "push." You can get rid of this error by adding GitHub's large file management system called "Git LFS," but you can't do it to only one or two hosts: **all** Secondary Pi-holes as well as your Primary Pi-hole must be configured to use Git LFS, or they will be unable to sync.
 
 # Disclaimer
 As always, you are totally responsible for anything this script does to your system. Whether it launches a nice game of Tic Tac Toe or global thermonuclear war, you're on your own. :)
