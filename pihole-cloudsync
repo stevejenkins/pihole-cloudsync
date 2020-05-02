@@ -30,22 +30,22 @@ update='April 2, 2020'
 # Project Home: https://github.com/stevejenkins/pihole-cloudsync
 ###########################################################################
 # CONSTANTS
-pihole_version=4
-personal_git_dir='/usr/local/bin/my-pihole-lists'
-pihole_dir='/etc/pihole'
-ad_list='adlists.list'
-black_list='black.list'
-blacklist_list='blacklist.txt'
-whitelist_list='whitelist.txt'
-regex_list='regex.list'
-gravity_db='gravity.db'
-custom_list='custom.list'
+pihole_version=${pihole_version:-4}
+personal_git_dir=${personal_git_dir:-'/usr/local/bin/my-pihole-lists'}
+pihole_dir=${pihole_dir:-'/etc/pihole'}
+ad_list=${ad_list:-'adlists.list'}
+black_list=${black_list:-'black.list'}
+blacklist_list=${blacklist_list:-'blacklist.txt'}
+whitelist_list=${whitelist_list:-'whitelist.txt'}
+regex_list=${regex_list:-'regex.list'}
+gravity_db=${gravity_db:-'gravity.db'}
+custom_list=${custom_list:-'custom.list'}
 ###########################################################################
 # FOR SHARED HOSTS MODE ONLY
 # RE-INITIALIZE WITH --initpush OR --initpull AFTER ENABLING THIS MODE
-enable_hosts=off
-local_hosts='/etc/hosts'
-shared_hosts='sharedhosts.txt'
+enable_hosts=${enable_hosts:-'off'}
+local_hosts=${local_hosts:-'/etc/hosts'}
+shared_hosts=${shared_hosts:-'sharedhosts.txt'}
 ###########################################################################
 # SHOULDN'T NEED TO EDIT BELOW THIS LINE
 
