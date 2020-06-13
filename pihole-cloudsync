@@ -18,12 +18,12 @@ update='13 June 2020'
 # USAGE: pihole-cloudsync <option>
 
 # OPTIONS:
-#  --initpush				Initialize Primary Pi-hole in "Push" mode
-#  --initpull				Initialize Secondary Pi-hole in "Pull" mode
-#  --push, --upload, --up, -u		Push (upload) your Pi-hole lists to a remote Git repo
-#  --pull, --download, --down, -d	Pull (download) your lists from a remote Git repo
-#  --help, -h, -?			Show the current version of pihole-cloudsync
-#  --version, -v			Show version number
+#  --initpush               Initialize Primary Pi-hole in "Push" mode
+#  --initpull               Initialize Secondary Pi-hole in "Pull" mode
+#  --push, --upload, --up, -u       Push (upload) your Pi-hole lists to a remote Git repo
+#  --pull, --download, --down, -d   Pull (download) your lists from a remote Git repo
+#  --help, -h, -?           Show the current version of pihole-cloudsync
+#  --version, -v            Show version number
 
 # EXAMPLES:
 #  'pihole-cloudsync --push' will push (upload) your lists to a remote Git repo
@@ -66,116 +66,116 @@ DOCKER=''
 if [ -x "$(command -v docker)" ]; then
     PIHOLECONTAINER=$(docker ps -f "ancestor=pihole/pihole" --format "{{.Names}}")
     if [ -n  "${PIHOLECONTAINER}" ] && $(docker inspect -f "{{.State.Running}}" "${PIHOLECONTAINER}"); then
-        DOCKER='docker exec -i "${PIHOLECONTAINER}"'
+        DOCKER="docker exec -i ${PIHOLECONTAINER}"
     fi
 fi
 
 # Case-insensitive check for Shared Hosts Mode
 shared_hosts_mode=''
 if [ $(echo "$enable_hosts" |tr [:upper:] [:lower:]) == "yes" ] || [ $(echo "$enable_hosts" |tr [:upper:] [:lower:]) == "y" ] || [ $(echo "$enable_hosts" |tr [:upper:] [:lower:]) == "on" ] || [ $(echo "$enable_hosts" |tr [:upper:] [:lower:]) == "true" ] || [ $(echo "$enable_hosts" |tr [:upper:] [:lower:]) == "1" ]; then
-	shared_hosts_mode='1'
-	echo "Shared Hosts Mode ENABLED.";
+    shared_hosts_mode='1'
+    echo "Shared Hosts Mode ENABLED.";
 else
-	echo "Shared Hosts Mode DISABLED.";
+    echo "Shared Hosts Mode DISABLED.";
 fi
 
 # FUNCTIONS
 push_initialize () {
-	cd $pihole_dir || exit
-	if [ "$pihole_version" == "5" ]; then
-		$SUDO touch $gravity_db $custom_list
-		$SUDO cp $gravity_db $custom_list $personal_git_dir
-	else
-		$SUDO touch $ad_list $black_list $blacklist_list $whitelist_list $regex_list
-		$SUDO cp $ad_list $black_list $blacklist_list $whitelist_list $regex_list $personal_git_dir
-	fi
+    cd $pihole_dir || exit
+    if [ "$pihole_version" == "5" ]; then
+        $SUDO touch $gravity_db $custom_list
+        $SUDO cp $gravity_db $custom_list $personal_git_dir
+    else
+        $SUDO touch $ad_list $black_list $blacklist_list $whitelist_list $regex_list
+        $SUDO cp $ad_list $black_list $blacklist_list $whitelist_list $regex_list $personal_git_dir
+    fi
 
-	if [ "$shared_hosts_mode" ]; then
-		$SUDO sed -n '/# SHARED HOSTS - START/,/# SHARED HOSTS - END/p' $local_hosts | $SUDO sed '1d;$d' > /tmp/$shared_hosts
-		$SUDO cp /tmp/$shared_hosts $personal_git_dir
-	fi
-	cd $personal_git_dir || exit
-	$SUDO git add .
-	echo "Local Pi-hole initialized in Push mode and local lists were added to local Git repo. Run 'pihole-cloudsync --push' to push to remote Git repo.";
+    if [ "$shared_hosts_mode" ]; then
+        $SUDO sed -n '/# SHARED HOSTS - START/,/# SHARED HOSTS - END/p' $local_hosts | $SUDO sed '1d;$d' > /tmp/$shared_hosts
+        $SUDO cp /tmp/$shared_hosts $personal_git_dir
+    fi
+    cd $personal_git_dir || exit
+    $SUDO git add .
+    echo "Local Pi-hole initialized in Push mode and local lists were added to local Git repo. Run 'pihole-cloudsync --push' to push to remote Git repo.";
 }
 pull_initialize () {
-	cd $personal_git_dir || exit
-	$SUDO git remote update > /dev/null
-	# Remove -q option if you don't want to run in "quiet" mode
-	$SUDO git fetch --all -q
-	$SUDO git reset --hard origin/master -q
-	if [ "$pihole_version" == "5" ]; then
-		$SUDO $DOCKER service pihole-FTL stop
-		$SUDO cp $gravity_db $custom_list $pihole_dir
-		$SUDO $DOCKER service pihole-FTL start
-	else
-		$SUDO cp $ad_list $black_list $blacklist_list $whitelist_list $regex_list $pihole_dir
-	fi
+    cd $personal_git_dir || exit
+    $SUDO git remote update > /dev/null
+    # Remove -q option if you don't want to run in "quiet" mode
+    $SUDO git fetch --all -q
+    $SUDO git reset --hard origin/master -q
+    if [ "$pihole_version" == "5" ]; then
+        $SUDO $DOCKER service pihole-FTL stop
+        $SUDO cp $gravity_db $custom_list $pihole_dir
+        $SUDO $DOCKER service pihole-FTL start
+    else
+        $SUDO cp $ad_list $black_list $blacklist_list $whitelist_list $regex_list $pihole_dir
+    fi
 
-	if [ "$shared_hosts_mode" ]; then
-		$SUDO cp $local_hosts /tmp/hosts
-		$SUDO sed -e '/# SHARED HOSTS - START/,/# SHARED HOSTS - END/{/^# SHARED HOSTS/!d}' \
-		-e "/# SHARED HOSTS - START.*$/r $shared_hosts" \
-		--in-place=.bak /tmp/hosts
-		$SUDO mv /tmp/hosts $local_hosts
-	fi
-	$SUDO $DOCKER pihole -g
-	echo "Local Pi-hole initialized in Pull mode and first pull successfully completed.";
-	echo "Future pulls can now be perfomed with 'pihole-cloudsync --pull'.";
+    if [ "$shared_hosts_mode" ]; then
+        $SUDO cp $local_hosts /tmp/hosts
+        $SUDO sed -e '/# SHARED HOSTS - START/,/# SHARED HOSTS - END/{/^# SHARED HOSTS/!d}' \
+        -e "/# SHARED HOSTS - START.*$/r $shared_hosts" \
+        --in-place=.bak /tmp/hosts
+        $SUDO mv /tmp/hosts $local_hosts
+    fi
+    $SUDO $DOCKER pihole -g
+    echo "Local Pi-hole initialized in Pull mode and first pull successfully completed.";
+    echo "Future pulls can now be perfomed with 'pihole-cloudsync --pull'.";
 }
 push () {
-	cd $pihole_dir || exit
+    cd $pihole_dir || exit
         if [ "$pihole_version" == "5" ]; then
                 $SUDO cp $gravity_db $custom_list $personal_git_dir
-	else
-		$SUDO cp $ad_list $black_list $blacklist_list $whitelist_list $regex_list $personal_git_dir
-	fi
+    else
+        $SUDO cp $ad_list $black_list $blacklist_list $whitelist_list $regex_list $personal_git_dir
+    fi
 
-	if [ "$shared_hosts_mode" ]; then
-		$SUDO sed -n '/# SHARED HOSTS - START/,/# SHARED HOSTS - END/p' $local_hosts | $SUDO sed '1d;$d' > /tmp/$shared_hosts
-		$SUDO cp /tmp/$shared_hosts $personal_git_dir
-	fi
-	cd $personal_git_dir || exit
-	$SUDO git remote update > /dev/null
+    if [ "$shared_hosts_mode" ]; then
+        $SUDO sed -n '/# SHARED HOSTS - START/,/# SHARED HOSTS - END/p' $local_hosts | $SUDO sed '1d;$d' > /tmp/$shared_hosts
+        $SUDO cp /tmp/$shared_hosts $personal_git_dir
+    fi
+    cd $personal_git_dir || exit
+    $SUDO git remote update > /dev/null
         CHANGED=$($SUDO git --work-tree=$personal_git_dir status --porcelain)
         if [ -n "${CHANGED}" ]; then
                 echo 'Local Pi-hole lists are different than remote Git repo. Updating remote repo...';
-		rightnow=$(date +"%B %e, %Y %l:%M%p")
-		# Remove -q option if you don't want to run in "quiet" mode
-		$SUDO git commit -a -m "Updated $rightnow" -q
-		$SUDO git push -q
-		echo 'Done!';
-		exit 0
+        rightnow=$(date +"%B %e, %Y %l:%M%p")
+        # Remove -q option if you don't want to run in "quiet" mode
+        $SUDO git commit -a -m "Updated $rightnow" -q
+        $SUDO git push -q
+        echo 'Done!';
+        exit 0
         else
                 echo 'Remote Git repo matches local Pi-hole lists. No further action required.';
-		exit 0
+        exit 0
         fi
 }
 pull () {
-	cd $personal_git_dir || exit
-	$SUDO git remote update > /dev/null
-	CHANGED=$($SUDO git log HEAD..origin/master --oneline)
-	if [ -n "${CHANGED}" ]; then
+    cd $personal_git_dir || exit
+    $SUDO git remote update > /dev/null
+    CHANGED=$($SUDO git log HEAD..origin/master --oneline)
+    if [ -n "${CHANGED}" ]; then
                 echo 'Remote Git repo is different than local Pi-hole lists. Updating local lists...';
                 # Remove -q option if you don't want to run in "quiet" mode
                 $SUDO git fetch --all -q
-		$SUDO git reset --hard origin/master -q
-		if [ "$pihole_version" == "5" ]; then
-			$SUDO $DOCKER service pihole-FTL stop
-			$SUDO cp $gravity_db $custom_list $pihole_dir
-			$SUDO $DOCKER service pihole-FTL start
-		else
-			$SUDO cp $ad_list $black_list $blacklist_list $whitelist_list $regex_list $pihole_dir
-		fi
+        $SUDO git reset --hard origin/master -q
+        if [ "$pihole_version" == "5" ]; then
+            $SUDO $DOCKER service pihole-FTL stop
+            $SUDO cp $gravity_db $custom_list $pihole_dir
+            $SUDO $DOCKER service pihole-FTL start
+        else
+            $SUDO cp $ad_list $black_list $blacklist_list $whitelist_list $regex_list $pihole_dir
+        fi
 
-		if [ "$shared_hosts_mode" ]; then
-			$SUDO cp $local_hosts /tmp/hosts
-			$SUDO sed -e '/# SHARED HOSTS - START/,/# SHARED HOSTS - END/{/^# SHARED HOSTS/!d}' \
-			-e "/# SHARED HOSTS - START.*$/r $shared_hosts" \
-			--in-place=.bak /tmp/hosts
-			$SUDO mv /tmp/hosts $local_hosts
-		fi
-		$SUDO $DOCKER pihole -g
+        if [ "$shared_hosts_mode" ]; then
+            $SUDO cp $local_hosts /tmp/hosts
+            $SUDO sed -e '/# SHARED HOSTS - START/,/# SHARED HOSTS - END/{/^# SHARED HOSTS/!d}' \
+            -e "/# SHARED HOSTS - START.*$/r $shared_hosts" \
+            --in-place=.bak /tmp/hosts
+            $SUDO mv /tmp/hosts $local_hosts
+        fi
+        $SUDO $DOCKER pihole -g
                 echo 'Done!';
                 exit 0
         else
@@ -184,7 +184,7 @@ pull () {
         fi
 }
 docker_test() {
-    $DOCKER echo "docker test worked"
+    $DOCKER printenv
 }
 ###########################################################################
 # Check to see whether a command line option was provided
@@ -198,47 +198,48 @@ for arg in "$@"
 do
     # Test sending commands to docker container
     if [ "$arg" == "--dockertest" ]
-    then
-    echo "$arg option detected. Testing docker container commands.";
-    docker_test
-    exit 0
+        then
+        echo "$arg option detected. Testing docker container commands with 'printenv'.";
+        docker_test
+        exit 0
     # Initialize - adds primary Pi-hole's lists to local Git repo before first push/upload
     elif [ "$arg" == "--initpush" ]
-    then
-	echo "$arg option detected. Initializing local Git repo for Push/Upload.";
-	push_initialize
-	exit 0
+        then
+        echo "$arg option detected. Initializing local Git repo for Push/Upload.";
+        push_initialize
+        exit 0
     # Initialize - adds primary Pi-hole's lists to local Git repo before first push/upload
     elif [ "$arg" == "--initpull" ]
-    then
-	echo "$arg option detected. Initializing local Git repo for Pull/Download.";
-	pull_initialize
-	exit 0
+        then
+        echo "$arg option detected. Initializing local Git repo for Pull/Download.";
+        pull_initialize
+        exit 0
     # Push / Upload - Pushes updated local Pi-hole lists to remote Git repo
     elif [ "$arg" == "--push" ] || [ "$arg" == "--upload" ] || [ "$arg" == "--up" ] || [ "$arg" == "-u" ]
     then
-	echo "$arg option detected. Running in Push/Upload mode."
-	push
-	exit 0
+        echo "$arg option detected. Running in Push/Upload mode."
+        push
+        exit 0
     # Pull / Download - Pulls updated Pi-hole lists from remote Git repo
     elif [ "$arg" == "--pull" ] || [ "$arg" == "--download" ] || [ "$arg" == "--down" ]|| [ "$arg" == "-d" ]
-    then
+        then
         echo "$arg option detected. Running in Pull/Download mode."
-	pull
+        pull
         exit 0
     # Help - Displays help dialog
     elif [ "$arg" == "--help" ] || [ "$arg" == "-h" ] || [ "$arg" == "-?" ]
-    then
-	cat << EOF
+        then
+        cat << EOF
 Usage: pihole-cloudsync <option>
 
 Options:
-  --push, --upload, --up, -u		Push (upload) your Pi-hole lists to a remote Git repo
-  --pull, --download, --down, -d	Pull (download) your lists from a remote Git repo
-  --initpush				Initialize Primary Pi-hole in "Push" mode
-  --initpull				Initialize Secondary Pi-hole in "Pull" mode
-  --help, -h, -?			Show this help dialog
-  --version, -v				Show the current version of pihole-cloudsync
+  --push, --upload, --up, -u            Push (upload) your Pi-hole lists to a remote Git repo
+  --pull, --download, --down, -d        Pull (download) your lists from a remote Git repo
+  --initpush                            Initialize Primary Pi-hole in "Push" mode
+  --initpull                            Initialize Secondary Pi-hole in "Pull" mode
+  --help, -h, -?                        Show this help dialog
+  --version, -v                         Show the current version of pihole-cloudsync
+  --dockertest                          Validate connection to running Pi-hole docker container
 
 Examples:
   'pihole-cloudsync --push' will push (upload) your lists to a Git repo
@@ -249,13 +250,12 @@ EOF
 
     # Version - Displays version number
     elif [ "$arg" == "--version" ] || [ "$arg" == "-v" ]
-	then
-	echo 'pihole-cloudsync v'$version' - Updated '"$update";
-	echo 'https://github.com/stevejenkins/pihole-cloudsync';
-
+        then
+        echo 'pihole-cloudsync v'$version' - Updated '"$update";
+        echo 'https://github.com/stevejenkins/pihole-cloudsync';
     # Invalid command line option was passed
     else
-	echo "Invalid command line option. Try --push, --pull, or --help."
-	exit 1
+        echo "Invalid command line option. Try --push, --pull, or --help."
+        exit 1
     fi
 done
