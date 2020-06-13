@@ -4,7 +4,9 @@
 # pihole-cloudsync
 # Helper script to keep multiple Pi-holes' lists synchronized via Git
 
-# Version 4.0 - March 28, 2020 - Steve Jenkins (stevejenkins.com)
+# Version 4.1 - April 2, 2020 - Steve Jenkins (stevejenkins.com)
+# Version 4.1tb - 13 June 2020 - IarwainBen-adar (tom.bombadil@ennorath.network) 
+#  └─TB: Added support for Pi-hole running in a Docker container
 version='4.1tb'
 update='13 June 2020'
 
@@ -58,7 +60,7 @@ if [ "$EUID" -ne 0 ]
   then SUDO='sudo'
 fi
 
-# Send commands to container if pihole is running in docker
+# Send pihole commands via docker exec if pihole is running in docker container
 PIHOLECONTAINER=''
 DOCKER=''
 if [ -x "$(command -v docker)" ]; then
