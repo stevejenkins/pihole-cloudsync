@@ -5,8 +5,8 @@
 # Helper script to keep multiple Pi-holes' lists synchronized via Git
 
 # Version 4.0 - March 28, 2020 - Steve Jenkins (stevejenkins.com)
-version='4.1'
-update='April 2, 2020'
+version='4.1tb'
+update='13 June 2020'
 
 # SETUP
 # Follow the instructions in the README to set up your own private Git
@@ -28,9 +28,10 @@ update='April 2, 2020'
 #  'pihole-cloudsync --pull' will pull (download) your lists from a remote Git repo
 
 # Project Home: https://github.com/stevejenkins/pihole-cloudsync
+
 ###########################################################################
-# CONSTANTS
-pihole_version=4
+# PIHOLE-CLOUDSYNC CONFIGURATION
+pihole_version=5 # safe to default to version 5 at this point?
 personal_git_dir='/usr/local/bin/my-pihole-lists'
 pihole_dir='/etc/pihole'
 ad_list='adlists.list'
@@ -40,12 +41,14 @@ whitelist_list='whitelist.txt'
 regex_list='regex.list'
 gravity_db='gravity.db'
 custom_list='custom.list'
+
 ###########################################################################
 # FOR SHARED HOSTS MODE ONLY
 # RE-INITIALIZE WITH --initpush OR --initpull AFTER ENABLING THIS MODE
 enable_hosts=off
 local_hosts='/etc/hosts'
 shared_hosts='sharedhosts.txt'
+
 ###########################################################################
 # SHOULDN'T NEED TO EDIT BELOW THIS LINE
 
@@ -53,6 +56,16 @@ shared_hosts='sharedhosts.txt'
 SUDO=''
 if [ "$EUID" -ne 0 ]
   then SUDO='sudo'
+fi
+
+# Send commands to container if pihole is running in docker
+PIHOLECONTAINER=''
+DOCKER=''
+if [ -x "$(command -v docker)" ]; then
+    PIHOLECONTAINER=$(docker ps -f "ancestor=pihole/pihole" --format "{{.Names}}")
+    if [ -n  "${PIHOLECONTAINER}" ] && $(docker inspect -f "{{.State.Running}}" "${PIHOLECONTAINER}"); then
+        DOCKER='docker exec -i "${PIHOLECONTAINER}"'
+    fi
 fi
 
 # Case-insensitive check for Shared Hosts Mode
@@ -90,9 +103,9 @@ pull_initialize () {
 	$SUDO git fetch --all -q
 	$SUDO git reset --hard origin/master -q
 	if [ "$pihole_version" == "5" ]; then
-		$SUDO service pihole-FTL stop
+		$SUDO $DOCKER service pihole-FTL stop
 		$SUDO cp $gravity_db $custom_list $pihole_dir
-		$SUDO service pihole-FTL start
+		$SUDO $DOCKER service pihole-FTL start
 	else
 		$SUDO cp $ad_list $black_list $blacklist_list $whitelist_list $regex_list $pihole_dir
 	fi
@@ -104,7 +117,7 @@ pull_initialize () {
 		--in-place=.bak /tmp/hosts
 		$SUDO mv /tmp/hosts $local_hosts
 	fi
-	$SUDO pihole -g
+	$SUDO $DOCKER pihole -g
 	echo "Local Pi-hole initialized in Pull mode and first pull successfully completed.";
 	echo "Future pulls can now be perfomed with 'pihole-cloudsync --pull'.";
 }
@@ -146,9 +159,9 @@ pull () {
                 $SUDO git fetch --all -q
 		$SUDO git reset --hard origin/master -q
 		if [ "$pihole_version" == "5" ]; then
-			$SUDO service pihole-FTL stop
+			$SUDO $DOCKER service pihole-FTL stop
 			$SUDO cp $gravity_db $custom_list $pihole_dir
-			$SUDO service pihole-FTL start
+			$SUDO $DOCKER service pihole-FTL start
 		else
 			$SUDO cp $ad_list $black_list $blacklist_list $whitelist_list $regex_list $pihole_dir
 		fi
@@ -160,13 +173,16 @@ pull () {
 			--in-place=.bak /tmp/hosts
 			$SUDO mv /tmp/hosts $local_hosts
 		fi
-		$SUDO pihole -g
+		$SUDO $DOCKER pihole -g
                 echo 'Done!';
                 exit 0
         else
                 echo 'Local Pi-hole lists match remote Git repo. No further action required.';
                 exit 0
         fi
+}
+docker_test() {
+    $DOCKER echo "docker test worked"
 }
 ###########################################################################
 # Check to see whether a command line option was provided
@@ -178,6 +194,12 @@ fi
 # Determine which action to perform (InitPush, InitPull, Push, Pull, or Help)
 for arg in "$@"
 do
+    # Test sending commands to docker container
+    if [ "$arg" == "--dockertest" ]
+    then
+    echo "$arg option detected. Testing docker container commands.";
+    docker_test
+    exit 0
     # Initialize - adds primary Pi-hole's lists to local Git repo before first push/upload
     if [ "$arg" == "--initpush" ]
     then
