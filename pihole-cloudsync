@@ -34,7 +34,7 @@ update='13 June 2020'
 ###########################################################################
 # PIHOLE-CLOUDSYNC CONFIGURATION
 pihole_version=5 # safe to default to version 5 at this point?
-personal_git_dir='/usr/local/bin/my-pihole-lists'
+personal_git_dir='/etc/pihole/my-pihole-lists'
 pihole_dir='/etc/pihole'
 ad_list='adlists.list'
 black_list='black.list'
