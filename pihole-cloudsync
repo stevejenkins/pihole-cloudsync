@@ -203,7 +203,7 @@ do
     docker_test
     exit 0
     # Initialize - adds primary Pi-hole's lists to local Git repo before first push/upload
-    if [ "$arg" == "--initpush" ]
+    elif [ "$arg" == "--initpush" ]
     then
 	echo "$arg option detected. Initializing local Git repo for Push/Upload.";
 	push_initialize
