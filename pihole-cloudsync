@@ -4,9 +4,11 @@
 # pihole-cloudsync
 # Helper script to keep multiple Pi-holes' lists synchronized via Git
 
-# Version 4.0 - March 28, 2020 - Steve Jenkins (stevejenkins.com)
-version='4.1'
-update='April 2, 2020'
+# Steve Jenkins (stevejenkins.com)
+# https://github.com/stevejenkins/pihole-cloudsync
+
+version='5.0'
+update='December 26, 2020'
 
 # SETUP
 # Follow the instructions in the README to set up your own private Git
@@ -30,22 +32,14 @@ update='April 2, 2020'
 # Project Home: https://github.com/stevejenkins/pihole-cloudsync
 ###########################################################################
 # CONSTANTS
-pihole_version=4
-personal_git_dir='/usr/local/bin/my-pihole-lists'
+personal_git_dir='/usr/local/bin/my-pihole-lists-private'
 pihole_dir='/etc/pihole'
-ad_list='adlists.list'
-black_list='black.list'
-blacklist_list='blacklist.txt'
-whitelist_list='whitelist.txt'
-regex_list='regex.list'
-gravity_db='gravity.db'
+gravity_db='/etc/pihole/gravity.db'
+dnsmasq_dir='/etc/dnsmasq.d/'
+ad_list='adlist.csv'
 custom_list='custom.list'
-###########################################################################
-# FOR SHARED HOSTS MODE ONLY
-# RE-INITIALIZE WITH --initpush OR --initpull AFTER ENABLING THIS MODE
-enable_hosts=off
-local_hosts='/etc/hosts'
-shared_hosts='sharedhosts.txt'
+domain_list='domainlist.csv'
+cname_list='05-pihole-custom-cname.conf'
 ###########################################################################
 # SHOULDN'T NEED TO EDIT BELOW THIS LINE
 
@@ -53,15 +47,6 @@ shared_hosts='sharedhosts.txt'
 SUDO=''
 if [ "$EUID" -ne 0 ]
   then SUDO='sudo'
-fi
-
-# Case-insensitive check for Shared Hosts Mode
-shared_hosts_mode=''
-if [ $(echo "$enable_hosts" |tr [:upper:] [:lower:]) == "yes" ] || [ $(echo "$enable_hosts" |tr [:upper:] [:lower:]) == "y" ] || [ $(echo "$enable_hosts" |tr [:upper:] [:lower:]) == "on" ] || [ $(echo "$enable_hosts" |tr [:upper:] [:lower:]) == "true" ] || [ $(echo "$enable_hosts" |tr [:upper:] [:lower:]) == "1" ]; then
-	shared_hosts_mode='1'
-	echo "Shared Hosts Mode ENABLED.";
-else
-	echo "Shared Hosts Mode DISABLED.";
 fi
 
 # FUNCTIONS
@@ -75,10 +60,6 @@ push_initialize () {
 		$SUDO cp $ad_list $black_list $blacklist_list $whitelist_list $regex_list $personal_git_dir
 	fi
 
-	if [ "$shared_hosts_mode" ]; then
-		$SUDO sed -n '/# SHARED HOSTS - START/,/# SHARED HOSTS - END/p' $local_hosts | $SUDO sed '1d;$d' > /tmp/$shared_hosts
-		$SUDO cp /tmp/$shared_hosts $personal_git_dir
-	fi
 	cd $personal_git_dir || exit
 	$SUDO git add .
 	echo "Local Pi-hole initialized in Push mode and local lists were added to local Git repo. Run 'pihole-cloudsync --push' to push to remote Git repo.";
@@ -89,21 +70,13 @@ pull_initialize () {
 	# Remove -q option if you don't want to run in "quiet" mode
 	$SUDO git fetch --all -q
 	$SUDO git reset --hard origin/master -q
-	if [ "$pihole_version" == "5" ]; then
-		$SUDO service pihole-FTL stop
-		$SUDO cp $gravity_db $custom_list $pihole_dir
-		$SUDO service pihole-FTL start
-	else
-		$SUDO cp $ad_list $black_list $blacklist_list $whitelist_list $regex_list $pihole_dir
-	fi
-
-	if [ "$shared_hosts_mode" ]; then
-		$SUDO cp $local_hosts /tmp/hosts
-		$SUDO sed -e '/# SHARED HOSTS - START/,/# SHARED HOSTS - END/{/^# SHARED HOSTS/!d}' \
-		-e "/# SHARED HOSTS - START.*$/r $shared_hosts" \
-		--in-place=.bak /tmp/hosts
-		$SUDO mv /tmp/hosts $local_hosts
-	fi
+	$SUDO service pihole-FTL stop
+	$SUDO cp $custom_list $pihole_dir
+	$SUDO cp $cname_list $dnsmasq_dir
+	$SUDO sqlite3 $gravity_db "DROP TABLE adlist;"
+	$SUDO sqlite3 $gravity_db -header -csv ".import adlist.csv adlist"
+	$SUDO sqlite3 $gravity_db "DROP TABLE domainlist;"
+	$SUDO sqlite3 $gravity_db -header -csv ".import domainlist.csv domainlist"
 	$SUDO pihole -g
 	echo "Local Pi-hole initialized in Pull mode and first pull successfully completed.";
 	echo "Future pulls can now be perfomed with 'pihole-cloudsync --pull'.";
@@ -145,21 +118,13 @@ pull () {
                 # Remove -q option if you don't want to run in "quiet" mode
                 $SUDO git fetch --all -q
 		$SUDO git reset --hard origin/master -q
-		if [ "$pihole_version" == "5" ]; then
-			$SUDO service pihole-FTL stop
-			$SUDO cp $gravity_db $custom_list $pihole_dir
-			$SUDO service pihole-FTL start
-		else
-			$SUDO cp $ad_list $black_list $blacklist_list $whitelist_list $regex_list $pihole_dir
-		fi
-
-		if [ "$shared_hosts_mode" ]; then
-			$SUDO cp $local_hosts /tmp/hosts
-			$SUDO sed -e '/# SHARED HOSTS - START/,/# SHARED HOSTS - END/{/^# SHARED HOSTS/!d}' \
-			-e "/# SHARED HOSTS - START.*$/r $shared_hosts" \
-			--in-place=.bak /tmp/hosts
-			$SUDO mv /tmp/hosts $local_hosts
-		fi
+                $SUDO service pihole-FTL stop
+                $SUDO cp $custom_list $pihole_dir
+                $SUDO cp $cname_list $dnsmasq_dir
+                $SUDO sqlite3 $gravity_db "DROP TABLE adlist;"
+                $SUDO sqlite3 $gravity_db -header -csv ".import adlist.csv adlist"
+                $SUDO sqlite3 $gravity_db "DROP TABLE domainlist;"
+                $SUDO sqlite3 $gravity_db -header -csv ".import domainlist.csv domainlist"
 		$SUDO pihole -g
                 echo 'Done!';
                 exit 0
