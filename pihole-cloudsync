@@ -32,7 +32,7 @@ update='December 26, 2020'
 # Project Home: https://github.com/stevejenkins/pihole-cloudsync
 ###########################################################################
 # CONSTANTS
-personal_git_dir='/usr/local/bin/my-pihole-lists-private'
+personal_git_dir='/usr/local/bin/my-pihole-lists'
 pihole_dir='/etc/pihole'
 gravity_db='/etc/pihole/gravity.db'
 dnsmasq_dir='/etc/dnsmasq.d/'
