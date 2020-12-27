@@ -51,50 +51,78 @@ fi
 
 # FUNCTIONS
 push_initialize () {
+	# Go to Pi-hole directory, exit if doesn't exist
 	cd $pihole_dir || exit
-	if [ "$pihole_version" == "5" ]; then
-		$SUDO touch $gravity_db $custom_list
-		$SUDO cp $gravity_db $custom_list $personal_git_dir
-	else
-		$SUDO touch $ad_list $black_list $blacklist_list $whitelist_list $regex_list
-		$SUDO cp $ad_list $black_list $blacklist_list $whitelist_list $regex_list $personal_git_dir
-	fi
 
+	# Verify Custom and CNAME lists exist
+	$SUDO touch $custom_list
+	$SUDO touch $dnsmasq_dir/$cname_list
+
+	# Copy local Custom and CNAME lists to local Git repo
+	$SUDO cp $custom_list $personal_git_dir
+	$SUDO cp $dnsmasq_dir/$cname_list $personal_git_dir
+
+	# Go to local Git repo directory
 	cd $personal_git_dir || exit
+
+	# Export Ad and Domain lists from Gravity database
+	$SUDO sqlite3 $gravity_db -header -csv "SELECT * FROM adlist" >$ad_list
+	$SUDO sqlite3 $gravity_db -header -csv "SELECT * FROM domainlist" >$domain_list
+
+	# Add all lists to local Git repo
 	$SUDO git add .
 	echo "Local Pi-hole initialized in Push mode and local lists were added to local Git repo. Run 'pihole-cloudsync --push' to push to remote Git repo.";
 }
 pull_initialize () {
+	# Go to Pi-hole directory, exit if doesn't exist
 	cd $personal_git_dir || exit
+
+	# Update local Git repo from remote Git repo
 	$SUDO git remote update > /dev/null
+
 	# Remove -q option if you don't want to run in "quiet" mode
 	$SUDO git fetch --all -q
 	$SUDO git reset --hard origin/master -q
+
+	# Stop DNS server
 	$SUDO service pihole-FTL stop
+
+	# Overwrite local files
 	$SUDO cp $custom_list $pihole_dir
 	$SUDO cp $cname_list $dnsmasq_dir
+
+	# Overwrite local database tables
 	$SUDO sqlite3 $gravity_db "DROP TABLE adlist;"
 	$SUDO sqlite3 $gravity_db -header -csv ".import adlist.csv adlist"
 	$SUDO sqlite3 $gravity_db "DROP TABLE domainlist;"
 	$SUDO sqlite3 $gravity_db -header -csv ".import domainlist.csv domainlist"
+
+	# Restart Pi-hole to pick up changes
 	$SUDO pihole -g
+
+	# Display success messages
 	echo "Local Pi-hole initialized in Pull mode and first pull successfully completed.";
 	echo "Future pulls can now be perfomed with 'pihole-cloudsync --pull'.";
 }
 push () {
+	 # Go to Pi-hole directory, exit if doesn't exist
 	cd $pihole_dir || exit
-        if [ "$pihole_version" == "5" ]; then
-                $SUDO cp $gravity_db $custom_list $personal_git_dir
-	else
-		$SUDO cp $ad_list $black_list $blacklist_list $whitelist_list $regex_list $personal_git_dir
-	fi
 
-	if [ "$shared_hosts_mode" ]; then
-		$SUDO sed -n '/# SHARED HOSTS - START/,/# SHARED HOSTS - END/p' $local_hosts | $SUDO sed '1d;$d' > /tmp/$shared_hosts
-		$SUDO cp /tmp/$shared_hosts $personal_git_dir
-	fi
-	cd $personal_git_dir || exit
+        # Copy local Custom and CNAME lists to local Git repo
+        $SUDO cp $custom_list $personal_git_dir
+        $SUDO cp $dnsmasq_dir/$cname_list $personal_git_dir
+
+	# Go to local Git repo directory
+        cd $personal_git_dir || exit
+
+        # Export Ad and Domain lists from Gravity database
+        $SUDO sqlite3 $gravity_db -header -csv "SELECT * FROM adlist" >$ad_list
+        $SUDO sqlite3 $gravity_db -header -csv "SELECT * FROM domainlist" >$domain_list
+
+	# Compare local files to remote Git repo
 	$SUDO git remote update > /dev/null
+
+	# If local files are different than remote, update remote Git repo
         CHANGED=$($SUDO git --work-tree=$personal_git_dir status --porcelain)
         if [ -n "${CHANGED}" ]; then
                 echo 'Local Pi-hole lists are different than remote Git repo. Updating remote repo...';
@@ -105,12 +133,16 @@ push () {
 		echo 'Done!';
 		exit 0
         else
-                echo 'Remote Git repo matches local Pi-hole lists. No further action required.';
+	# If local files are the same as remote, do nothing and exit
+	echo 'Remote Git repo matches local Pi-hole lists. No further action required.';
 		exit 0
         fi
 }
 pull () {
+        # Go to Pi-hole directory, exit if doesn't exist
 	cd $personal_git_dir || exit
+
+	# Update local Git repo from remote Git repo
 	$SUDO git remote update > /dev/null
 	CHANGED=$($SUDO git log HEAD..origin/master --oneline)
 	if [ -n "${CHANGED}" ]; then
