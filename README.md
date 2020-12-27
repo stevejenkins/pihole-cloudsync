@@ -14,8 +14,8 @@ Feedback, suggestions, bug fixes, and code contributions are welcome.
 # How `pihole-cloudsync` Works
 `pihole-cloudsync` allows you to designate any Pi-hole on any network to act as your "Master" or "Primary." This is the only Pi-hole whose list settings you will need to manage using Pi-hole's built-in web UI. The Primary Pi-hole then uses `pihole-cloudsync` in **Push** mode to *upload* four files to a private Git repository that you control (such as GitHub) that contain:
 
-1. Your adlists/blocklists (queried from Pi-hole's database at `/etc/pihole/gravity.db)
-2. Your domain lists: "exact match" and "regex" versions of your white and black lists (queried from Pi-hole's database at `/etc/pihole/gravity.db)
+1. Your adlists/blocklists (queried from Pi-hole's database at `/etc/pihole/gravity.db`)
+2. Your domain lists: "exact match" and "regex" versions of your white and black lists (queried from Pi-hole's database at `/etc/pihole/gravity.db`)
 3. Any custom DNS names you've configured via the Pi-hole UI (copied from `/etc/pihole/custom.list`)
 4. Any custom CNAMEs you've configured via the Pi-hole UI (copied from `/etc/dnsmasq.d/05-pihole-custom-cname.conf`)
 
