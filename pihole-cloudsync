@@ -33,6 +33,7 @@ update='December 26, 2020'
 ###########################################################################
 # CONSTANTS
 personal_git_dir='/usr/local/bin/my-pihole-lists'
+branch='master'
 pihole_dir='/etc/pihole'
 gravity_db='/etc/pihole/gravity.db'
 dnsmasq_dir='/etc/dnsmasq.d/'
@@ -144,12 +145,12 @@ pull () {
 
 	# Update local Git repo from remote Git repo
 	$SUDO git remote update > /dev/null
-	CHANGED=$($SUDO git log HEAD..origin/master --oneline)
+	CHANGED=$($SUDO git log HEAD..origin/$branch --oneline)
 	if [ -n "${CHANGED}" ]; then
                 echo 'Remote Git repo is different than local Pi-hole lists. Updating local lists...';
                 # Remove -q option if you don't want to run in "quiet" mode
                 $SUDO git fetch --all -q
-		$SUDO git reset --hard origin/master -q
+		$SUDO git reset --hard origin/$branch -q
                 $SUDO service pihole-FTL stop
                 $SUDO cp $custom_list $pihole_dir
                 $SUDO cp $cname_list $dnsmasq_dir
