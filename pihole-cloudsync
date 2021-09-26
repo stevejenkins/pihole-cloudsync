@@ -35,7 +35,7 @@ update='December 26, 2020'
 personal_git_dir='/usr/local/bin/my-pihole-lists'
 pihole_dir='/etc/pihole'
 gravity_db='/etc/pihole/gravity.db'
-dnsmasq_dir='/etc/dnsmasq.d/'
+dnsmasq_dir='/etc/dnsmasq.d'
 ad_list='adlist.csv'
 custom_list='custom.list'
 domain_list='domainlist.csv'
@@ -47,6 +47,33 @@ cname_list='05-pihole-custom-cname.conf'
 SUDO=''
 if [ "$EUID" -ne 0 ]
   then SUDO='sudo'
+fi
+
+# Attempt to detect pihole running in Docker
+DOCKER=''
+DOCKER_CMD="$(command -v docker)"
+JQ_CMD="$(command -v jq)"
+if [ -n "${DOCKER_CMD}" ]
+then
+	CONTAINER="$(${DOCKER_CMD} ps -f "ancestor=pihole/pihole" --format "{{.Names}}")"
+	if [ -n "${CONTAINER}" ]
+	then
+		if [ -n "${JQ_CMD}" ]
+		then
+			echo "Found pihole running under Docker container '${CONTAINER}'"
+
+			pihole_dir="$(${DOCKER_CMD} inspect -f "{{json .Mounts}}" "${CONTAINER}" | ${JQ_CMD} -r --arg dir "${pihole_dir}" '.[] | select(.Destination==$dir) | .Source')"
+			gravity_db="${pihole_dir}/gravity.db"
+			dnsmasq_dir="$(${DOCKER_CMD} inspect -f "{{json .Mounts}}" "${CONTAINER}" | ${JQ_CMD} -r --arg dir "${dnsmasq_dir}" '.[] | select(.Destination==$dir) | .Source')"
+
+			echo "Found pihole directory mapped to '${pihole_dir}'"
+			echo "Found dnsmasq directory mapped to '${dnsmasq_dir}'"
+
+			DOCKER="${DOCKER_CMD} exec -i ${CONTAINER}"
+		else
+			echo "Found Docker container '${CONTAINER}' but jq is not installed"
+		fi
+	fi
 fi
 
 # FUNCTIONS
@@ -85,7 +112,7 @@ pull_initialize () {
 	$SUDO git reset --hard origin/master -q
 
 	# Stop DNS server
-	$SUDO service pihole-FTL stop
+	$SUDO ${DOCKER} service pihole-FTL stop
 
 	# Overwrite local files
 	$SUDO cp $custom_list $pihole_dir
@@ -98,7 +125,7 @@ pull_initialize () {
 	$SUDO sqlite3 $gravity_db -header -csv ".import domainlist.csv domainlist"
 
 	# Restart Pi-hole to pick up changes
-	$SUDO pihole -g
+	$SUDO ${DOCKER} pihole -g
 
 	# Display success messages
 	echo "Local Pi-hole initialized in Pull mode and first pull successfully completed.";
@@ -150,14 +177,14 @@ pull () {
                 # Remove -q option if you don't want to run in "quiet" mode
                 $SUDO git fetch --all -q
 		$SUDO git reset --hard origin/master -q
-                $SUDO service pihole-FTL stop
+                $SUDO ${DOCKER} service pihole-FTL stop
                 $SUDO cp $custom_list $pihole_dir
                 $SUDO cp $cname_list $dnsmasq_dir
                 $SUDO sqlite3 $gravity_db "DROP TABLE adlist;"
                 $SUDO sqlite3 $gravity_db -header -csv ".import adlist.csv adlist"
                 $SUDO sqlite3 $gravity_db "DROP TABLE domainlist;"
                 $SUDO sqlite3 $gravity_db -header -csv ".import domainlist.csv domainlist"
-		$SUDO pihole -g
+		$SUDO ${DOCKER} pihole -g
                 echo 'Done!';
                 exit 0
         else
