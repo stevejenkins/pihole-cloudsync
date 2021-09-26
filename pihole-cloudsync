@@ -98,6 +98,11 @@ push_initialize () {
 	echo "Local Pi-hole initialized in Push mode and local lists were added to local Git repo. Run 'pihole-cloudsync --push' to push to remote Git repo.";
 }
 pull_initialize () {
+	branch=$1
+	if [ -z "${branch}" ]; then
+		branch="master"
+	fi
+
 	# Go to Pi-hole directory, exit if doesn't exist
 	cd $personal_git_dir || exit
 
@@ -106,7 +111,7 @@ pull_initialize () {
 
 	# Remove -q option if you don't want to run in "quiet" mode
 	$SUDO git fetch --all -q
-	$SUDO git reset --hard origin/master -q
+	$SUDO git reset --hard "origin/${branch}" -q
 
 	# Stop DNS server
 	$SUDO ${DOCKER} service pihole-FTL stop
@@ -163,17 +168,22 @@ push () {
 	fi
 }
 pull () {
+	branch=$1
+	if [ -z "${branch}" ]; then
+		branch="master"
+	fi
+
 	# Go to Pi-hole directory, exit if doesn't exist
 	cd $personal_git_dir || exit
 
 	# Update local Git repo from remote Git repo
 	$SUDO git remote update > /dev/null
-	CHANGED=$($SUDO git log HEAD..origin/master --oneline)
+	CHANGED=$($SUDO git log HEAD..origin/${branch} --oneline)
 	if [ -n "${CHANGED}" ]; then
 		echo 'Remote Git repo is different than local Pi-hole lists. Updating local lists...';
 		# Remove -q option if you don't want to run in "quiet" mode
 		$SUDO git fetch --all -q
-		$SUDO git reset --hard origin/master -q
+		$SUDO git reset --hard "origin/${branch}" -q
 		$SUDO ${DOCKER} service pihole-FTL stop
 		$SUDO cp $custom_list $pihole_dir
 		$SUDO cp $cname_list $dnsmasq_dir
@@ -205,7 +215,8 @@ for arg in "$@"; do
 	# Initialize - adds primary Pi-hole's lists to local Git repo before first push/upload
 	elif [ "$arg" == "--initpull" ]; then
 		echo "$arg option detected. Initializing local Git repo for Pull/Download.";
-		pull_initialize
+		shift
+		pull_initialize $1
 		exit 0
 	# Push / Upload - Pushes updated local Pi-hole lists to remote Git repo
 	elif [ "$arg" == "--push" ] || [ "$arg" == "--upload" ] || [ "$arg" == "--up" ] || [ "$arg" == "-u" ]; then
@@ -215,7 +226,8 @@ for arg in "$@"; do
 	# Pull / Download - Pulls updated Pi-hole lists from remote Git repo
 	elif [ "$arg" == "--pull" ] || [ "$arg" == "--download" ] || [ "$arg" == "--down" ]|| [ "$arg" == "-d" ]; then
 		echo "$arg option detected. Running in Pull/Download mode."
-		pull
+		shift
+		pull $1
 		exit 0
 	# Help - Displays help dialog
 	elif [ "$arg" == "--help" ] || [ "$arg" == "-h" ] || [ "$arg" == "-?" ]; then
@@ -223,16 +235,17 @@ for arg in "$@"; do
 		Usage: pihole-cloudsync <option>
 
 		Options:
-			--push, --upload, --up, -u    Push (upload) your Pi-hole lists to a remote Git repo
-			--pull, --download, --down, -d  Pull (download) your lists from a remote Git repo
-			--initpush        Initialize Primary Pi-hole in "Push" mode
-			--initpull        Initialize Secondary Pi-hole in "Pull" mode
-			--help, -h, -?      Show this help dialog
+			--push, --upload, --up, -u               Push (upload) your Pi-hole lists to a remote Git repo
+			--pull, --download, --down, -d [branch]  Pull (download) your lists from a remote Git repo
+			--initpush                 Initialize Primary Pi-hole in "Push" mode
+			--initpull [branch]        Initialize Secondary Pi-hole in "Pull" mode with optional branch (default: master)
+			--help, -h, -?       Show this help dialog
 			--version, -v        Show the current version of pihole-cloudsync
 
 		Examples:
 			'pihole-cloudsync --push' will push (upload) your lists to a Git repo
-			'pihole-cloudsync --pull' will pull (download) your lists from a Git repo
+			'pihole-cloudsync --pull' will pull (download) your lists from a Git repo from origin/master
+			'pihole-cloudsync --pull main' will pull (download) your lists from a Git repo from origin/main
 
 		Project Home: https://github.com/stevejenkins/pihole-cloudsync
 EOF
