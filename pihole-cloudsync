@@ -32,16 +32,18 @@ update='December 26, 2020'
 # Project Home: https://github.com/stevejenkins/pihole-cloudsync
 ###########################################################################
 # CONSTANTS
-personal_git_dir='/usr/local/bin/my-pihole-lists'
+personal_git_dir='/data/pihole/pihole-config'
 pihole_dir='/etc/pihole'
 gravity_db='/etc/pihole/gravity.db'
 dnsmasq_dir='/etc/dnsmasq.d'
-ad_list='adlist.csv'
 custom_list='custom.list'
-domain_list='domainlist.csv'
 cname_list='05-pihole-custom-cname.conf'
 ###########################################################################
 # SHOULDN'T NEED TO EDIT BELOW THIS LINE
+
+# List of DB tables we need to migrate between instances
+DB_TABLES="adlist domainlist group domainlist_by_group"
+DB_DUMP_FILE="db_dump.sql"
 
 # Force sudo if not running with root privileges
 SUDO=''
@@ -73,17 +75,15 @@ if [ -n "${DOCKER_CMD}" ]; then
     fi
 fi
 
-export_table () {
-    table="$1"
-
-    $SUDO sqlite3 $gravity_db -header -csv "SELECT * FROM \"$table\"" >"${table}.csv"
+export_tables () {
+    $SUDO sqlite3 $gravity_db ".dump --preserve-rowids $DB_TABLES" > $DB_DUMP_FILE
+    for t in $DB_TABLES; do
+        sed -i "/BEGIN TRAN/a DROP TABLE IF EXISTS $t;" $DB_DUMP_FILE
+    done
 }
 
-import_table () {
-    table="$1"
-
-    $SUDO sqlite3 $gravity_db "DROP TABLE \"$table\";"
-    $SUDO sqlite3 $gravity_db -header -csv ".import \"${table}.csv\" \"$table\""
+import_tables () {
+    $SUDO sqlite3 $gravity_db ".read '|$DB_DUMP_FILE'"
 }
 
 # FUNCTIONS
@@ -103,10 +103,7 @@ push_initialize () {
     cd $personal_git_dir || exit
 
     # Export Ad and Domain lists from Gravity database
-    export_table "adlist"
-    export_table "domainlist"
-    export_table "group"
-    export_table "domainlist_by_group"
+    export_tables
 
     # Add all lists to local Git repo
     $SUDO git add .
@@ -136,10 +133,7 @@ pull_initialize () {
     $SUDO cp $cname_list $dnsmasq_dir
 
     # Overwrite local database tables
-    import_table "adlist"
-    import_table "domainlist"
-    import_table "group"
-    import_table "domainlist_by_group"
+    import_tables
 
     # Restart Pi-hole to pick up changes
     $SUDO ${DOCKER} pihole -g
@@ -160,10 +154,7 @@ push () {
     cd $personal_git_dir || exit
 
     # Export Ad and Domain lists from Gravity database
-    export_table "adlist"
-    export_table "domainlist"
-    export_table "group"
-    export_table "domainlist_by_group"
+    export_tables
 
     # Compare local files to remote Git repo
     $SUDO git remote update > /dev/null
@@ -204,10 +195,7 @@ pull () {
         $SUDO ${DOCKER} service pihole-FTL stop
         $SUDO cp $custom_list $pihole_dir
         $SUDO cp $cname_list $dnsmasq_dir
-        import_table "adlist"
-        import_table "domainlist"
-        import_table "group"
-        import_table "domainlist_by_group"
+        import_tables
         $SUDO ${DOCKER} pihole -g
         echo 'Done!';
         exit 0
