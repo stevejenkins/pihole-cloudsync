@@ -52,6 +52,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 ###########################################################################
 # CONSTANTS
 personal_git_dir="${GIT_CONFIG_DIR:-/usr/local/bin/my-pihole-lists}"
+git_branch="${GIT_BRANCH:-master}"
 pihole_dir="${PIHOLE_DIR:-/etc/pihole}"
 gravity_db="${GRAVITY_DB:-/etc/pihole/gravity.db}"
 dnsmasq_dir="${DNSMASQ_DIR:-/etc/dnsmasq.d}"
@@ -61,7 +62,7 @@ cname_list="${CNAME_LIST:-05-pihole-custom-cname.conf}"
 # SHOULDN'T NEED TO EDIT BELOW THIS LINE
 
 # List of DB tables we need to migrate between instances
-DB_TABLES="adlist domainlist group domainlist_by_group"
+DB_TABLES="${SYNC_TABLES:-adlist domainlist group domainlist_by_group}"
 DB_DUMP_FILE="db_dump.sql"
 
 # Force sudo if not running with root privileges
@@ -96,6 +97,7 @@ fi
 
 export_tables () {
     $SUDO sqlite3 $gravity_db ".dump --preserve-rowids $DB_TABLES" > $DB_DUMP_FILE
+    # sqlite3 doesn't have a drop option, so we inject it after the transaction is generated
     for t in $DB_TABLES; do
         sed -i "/BEGIN TRAN/a DROP TABLE IF EXISTS '$t';" $DB_DUMP_FILE
     done
@@ -129,11 +131,6 @@ push_initialize () {
     echo "Local Pi-hole initialized in Push mode and local lists were added to local Git repo. Run 'pihole-cloudsync --push' to push to remote Git repo.";
 }
 pull_initialize () {
-    branch=$1
-    if [ -z "${branch}" ]; then
-        branch="master"
-    fi
-
     # Go to Pi-hole directory, exit if doesn't exist
     cd $personal_git_dir || exit
 
@@ -142,7 +139,7 @@ pull_initialize () {
 
     # Remove -q option if you don't want to run in "quiet" mode
     $SUDO git fetch --all -q
-    $SUDO git reset --hard "origin/${branch}" -q
+    $SUDO git reset --hard "origin/${git_branch}" -q
 
     # Stop DNS server
     $SUDO ${DOCKER} service pihole-FTL stop
@@ -195,22 +192,17 @@ push () {
     fi
 }
 pull () {
-    branch=$1
-    if [ -z "${branch}" ]; then
-        branch="master"
-    fi
-
     # Go to Pi-hole directory, exit if doesn't exist
     cd $personal_git_dir || exit
 
     # Update local Git repo from remote Git repo
     $SUDO git remote update > /dev/null
-    CHANGED=$($SUDO git log HEAD..origin/${branch} --oneline)
+    CHANGED=$($SUDO git log HEAD..origin/${git_branch} --oneline)
     if [ -n "${CHANGED}" ]; then
         echo 'Remote Git repo is different than local Pi-hole lists. Updating local lists...';
         # Remove -q option if you don't want to run in "quiet" mode
         $SUDO git fetch --all -q
-        $SUDO git reset --hard "origin/${branch}" -q
+        $SUDO git reset --hard "origin/${git_branch}" -q
         $SUDO ${DOCKER} service pihole-FTL stop
         $SUDO cp $custom_list $pihole_dir
         $SUDO cp $cname_list $dnsmasq_dir
@@ -240,7 +232,8 @@ for arg in "$@"; do
     elif [ "$arg" == "--initpull" ]; then
         echo "$arg option detected. Initializing local Git repo for Pull/Download.";
         shift
-        pull_initialize $1
+        [ -n "$1" ] && git_branch="$1"
+        pull_initialize
         exit 0
     # Push / Upload - Pushes updated local Pi-hole lists to remote Git repo
     elif [ "$arg" == "--push" ] || [ "$arg" == "--upload" ] || [ "$arg" == "--up" ] || [ "$arg" == "-u" ]; then
@@ -251,7 +244,8 @@ for arg in "$@"; do
     elif [ "$arg" == "--pull" ] || [ "$arg" == "--download" ] || [ "$arg" == "--down" ]|| [ "$arg" == "-d" ]; then
         echo "$arg option detected. Running in Pull/Download mode."
         shift
-        pull $1
+        [ -n "$1" ] && git_branch="$1"
+        pull
         exit 0
     # Help - Displays help dialog
     elif [ "$arg" == "--help" ] || [ "$arg" == "-h" ] || [ "$arg" == "-?" ]; then
