@@ -97,12 +97,12 @@ fi
 export_tables () {
     $SUDO sqlite3 $gravity_db ".dump --preserve-rowids $DB_TABLES" > $DB_DUMP_FILE
     for t in $DB_TABLES; do
-        sed -i "/BEGIN TRAN/a DROP TABLE IF EXISTS $t;" $DB_DUMP_FILE
+        sed -i "/BEGIN TRAN/a DROP TABLE IF EXISTS '$t';" $DB_DUMP_FILE
     done
 }
 
 import_tables () {
-    $SUDO sqlite3 $gravity_db ".read '|$DB_DUMP_FILE'"
+    $SUDO sqlite3 $gravity_db ".read $DB_DUMP_FILE"
 }
 
 # FUNCTIONS
