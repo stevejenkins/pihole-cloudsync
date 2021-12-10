@@ -4,11 +4,25 @@
 # pihole-cloudsync
 # Helper script to keep multiple Pi-holes' lists synchronized via Git
 
+# ORIGINAL AUTHOR
 # Steve Jenkins (stevejenkins.com)
 # https://github.com/stevejenkins/pihole-cloudsync
 
-version='5.0'
-update='December 26, 2020'
+# Joel Goguen
+# https://github.com/jgoguen/pihole-cloudsync
+# * Provide docker support
+# * Allow non-master branches
+
+# Jon Stephens
+# https://github.com/wetnun/pihole-cloudsync
+# * Remove collection of csv files in favor of dump
+# * Move import/export to helper functions
+# * Allow ENV file so you don't have to edit git files
+# * Fix issue of custom whitelist/domains don't work in agents because of groups missing
+# * Removed hard tabs, I just don't like them
+
+version='6.0'
+update='December 9, 2021'
 
 # SETUP
 # Follow the instructions in the README to set up your own private Git
@@ -30,14 +44,19 @@ update='December 26, 2020'
 #  'pihole-cloudsync --pull' will pull (download) your lists from a remote Git repo
 
 # Project Home: https://github.com/stevejenkins/pihole-cloudsync
+
+# Create env.sh file with presets if you don't want to edit this file
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
+[ -f "${SCRIPT_DIR}/env.sh" ] && source "${SCRIPT_DIR}/env.sh"
+
 ###########################################################################
 # CONSTANTS
-personal_git_dir='/data/pihole/pihole-config'
-pihole_dir='/etc/pihole'
-gravity_db='/etc/pihole/gravity.db'
-dnsmasq_dir='/etc/dnsmasq.d'
-custom_list='custom.list'
-cname_list='05-pihole-custom-cname.conf'
+personal_git_dir="${GIT_CONFIG_DIR:-/usr/local/bin/my-pihole-lists}"
+pihole_dir="${PIHOLE_DIR:-/etc/pihole}"
+gravity_db="${GRAVITY_DB:-/etc/pihole/gravity.db}"
+dnsmasq_dir="${DNSMASQ_DIR:-/etc/dnsmasq.d}"
+custom_list="${CUSTOM_LIST:-custom.list}"
+cname_list="${CNAME_LIST:-05-pihole-custom-cname.conf}"
 ###########################################################################
 # SHOULDN'T NEED TO EDIT BELOW THIS LINE
 
