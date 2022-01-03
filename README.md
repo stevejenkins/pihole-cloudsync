@@ -116,7 +116,9 @@ Wants=pihole-cloudsync-update.timer
 
 [Service]
 Type=oneshot
-ExecStart=/usr/local/bin/pihole-cloudsync --pull
+User=root
+Group=root
+ExecStart=/usr/local/bin/pihole-cloudsync/pihole-cloudsync --pull
 Slice=pihole-cloudsync-update.slice
 
 [Install]
