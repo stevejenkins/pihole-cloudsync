@@ -56,7 +56,7 @@ if [ -n "${DOCKER_CMD}" ]; then
 	CONTAINER="$(${DOCKER_CMD} ps -f "ancestor=pihole/pihole" --format "{{.Names}}")"
 	if [ -n "${CONTAINER}" ]; then
 		if [ -n "${JQ_CMD}" ]; then
-			echo "Found pihole running under Docker container '${CONTAINER}'"
+			printf 'Found pihole running under Docker container "%s"\n' "${CONTAINER}"
 
 			# shellcheck disable=SC2016
 			pihole_dir="$(${DOCKER_CMD} inspect -f "{{json .Mounts}}" "${CONTAINER}" | ${JQ_CMD} -r --arg dir "${pihole_dir}" '.[] | select(.Destination==$dir) | .Source')"
@@ -64,12 +64,12 @@ if [ -n "${DOCKER_CMD}" ]; then
 			# shellcheck disable=SC2016
 			dnsmasq_dir="$(${DOCKER_CMD} inspect -f "{{json .Mounts}}" "${CONTAINER}" | ${JQ_CMD} -r --arg dir "${dnsmasq_dir}" '.[] | select(.Destination==$dir) | .Source')"
 
-			echo "Found pihole directory mapped to '${pihole_dir}'"
-			echo "Found dnsmasq directory mapped to '${dnsmasq_dir}'"
+			printf 'Found pihole directory mapped to "%s"\n' "${pihole_dir}"
+			printf 'Found dnsmasq directory mapped to "%s"\n' "${dnsmasq_dir}"
 
 			DOCKER="${DOCKER_CMD} exec -i ${CONTAINER}"
 		else
-			echo "Found Docker container '${CONTAINER}' but jq is not installed"
+			printf 'Found Docker container "%s" but jq is not installed\n' "${CONTAINER}"
 		fi
 	fi
 fi
@@ -96,7 +96,7 @@ push_initialize () {
 
 	# Add all lists to local Git repo
 	"${SUDO}" git add .
-	echo "Local Pi-hole initialized in Push mode and local lists were added to local Git repo. Run 'pihole-cloudsync --push' to push to remote Git repo.";
+	printf 'Local Pi-hole initialized in Push mode and local lists were added to local Git repo. Run "pihole-cloudsync --push" to push to remote Git repo.'
 }
 pull_initialize () {
 	branch=$1
@@ -133,8 +133,8 @@ pull_initialize () {
 	"${SUDO}" ${DOCKER} pihole -g
 
 	# Display success messages
-	echo "Local Pi-hole initialized in Pull mode and first pull successfully completed.";
-	echo "Future pulls can now be perfomed with 'pihole-cloudsync --pull'.";
+	printf 'Local Pi-hole initialized in Pull mode and first pull successfully completed\n'
+	printf 'Future pulls can now be perfomed with "pihole-cloudsync --pull"\n'
 }
 push () {
 	 # Go to Pi-hole directory, exit if doesn't exist
@@ -157,16 +157,16 @@ push () {
 	# If local files are different than remote, update remote Git repo
 	CHANGED=$("${SUDO}" git --work-tree=$personal_git_dir status --porcelain)
 	if [ -n "${CHANGED}" ]; then
-		echo 'Local Pi-hole lists are different than remote Git repo. Updating remote repo...';
+		printf 'Local Pi-hole lists are different than remote Git repo. Updating remote repo...\n';
 		rightnow=$(date +"%B %e, %Y %l:%M%p")
 		# Remove -q option if you don't want to run in "quiet" mode
 		"${SUDO}" git commit -a -m "Updated $rightnow" -q
 		"${SUDO}" git push -q
-		echo 'Done!';
+		printf 'Done!\n';
 		exit 0
 	else
 		# If local files are the same as remote, do nothing and exit
-		echo 'Remote Git repo matches local Pi-hole lists. No further action required.';
+		printf 'Remote Git repo matches local Pi-hole lists. No further action required.\n';
 		exit 0
 	fi
 }
@@ -183,7 +183,7 @@ pull () {
 	"${SUDO}" git remote update > /dev/null
 	CHANGED=$("${SUDO}" git log HEAD..origin/${branch} --oneline)
 	if [ -n "${CHANGED}" ]; then
-		echo 'Remote Git repo is different than local Pi-hole lists. Updating local lists...';
+		printf 'Remote Git repo is different than local Pi-hole lists. Updating local lists...\n';
 		# Remove -q option if you don't want to run in "quiet" mode
 		"${SUDO}" git fetch --all -q
 		"${SUDO}" git reset --hard "origin/${branch}" -q
@@ -197,40 +197,40 @@ pull () {
 		"${SUDO}" sqlite3 "${gravity_db}" -header -csv ".import domainlist.csv domainlist"
 		# shellcheck disable=SC2086
 		"${SUDO}" ${DOCKER} pihole -g
-		echo 'Done!';
+		printf 'Done!\n';
 		exit 0
 	else
-		echo 'Local Pi-hole lists match remote Git repo. No further action required.';
+		printf 'Local Pi-hole lists match remote Git repo. No further action required.\n';
 		exit 0
 	fi
 }
 ###########################################################################
 # Check to see whether a command line option was provided
 if [ -z "${1}" ]; then
-		echo "Missing command line option. Try --push, --pull, or --help."
+		printf 'Missing command line option. Try --push, --pull, or --help.\n' >&2
 		exit 1
 fi
 # Determine which action to perform (InitPush, InitPull, Push, Pull, or Help)
 for arg in "${@}"; do
 	# Initialize - adds primary Pi-hole's lists to local Git repo before first push/upload
 	if [ "${arg}" == "--initpush" ]; then
-		echo "${arg} option detected. Initializing local Git repo for Push/Upload.";
+		printf '%s option detected. Initializing local Git repo for Push/Upload.\n' "${arg}"
 		push_initialize
 		exit 0
 	# Initialize - adds primary Pi-hole's lists to local Git repo before first push/upload
 	elif [ "${arg}" == "--initpull" ]; then
-		echo "${arg} option detected. Initializing local Git repo for Pull/Download.";
+		printf '%s option detected. Initializing local Git repo for Pull/Download.\n' "${arg}";
 		shift
 		pull_initialize "${1}"
 		exit 0
 	# Push / Upload - Pushes updated local Pi-hole lists to remote Git repo
 	elif [ "${arg}" == "--push" ] || [ "${arg}" == "--upload" ] || [ "${arg}" == "--up" ] || [ "${arg}" == "-u" ]; then
-		echo "${arg} option detected. Running in Push/Upload mode."
+		printf '%s option detected. Running in Push/Upload mode.\n' "${arg}"
 		push
 		exit 0
 	# Pull / Download - Pulls updated Pi-hole lists from remote Git repo
 	elif [ "${arg}" == "--pull" ] || [ "${arg}" == "--download" ] || [ "${arg}" == "--down" ]|| [ "${arg}" == "-d" ]; then
-		echo "${arg} option detected. Running in Pull/Download mode."
+		printf '%s option detected. Running in Pull/Download mode.\n' "${arg}"
 		shift
 		pull "${1}"
 		exit 0
@@ -242,10 +242,10 @@ for arg in "${@}"; do
 		Options:
 			--push, --upload, --up, -u               Push (upload) your Pi-hole lists to a remote Git repo
 			--pull, --download, --down, -d [branch]  Pull (download) your lists from a remote Git repo
-			--initpush                 Initialize Primary Pi-hole in "Push" mode
-			--initpull [branch]        Initialize Secondary Pi-hole in "Pull" mode with optional branch (default: master)
-			--help, -h, -?       Show this help dialog
-			--version, -v        Show the current version of pihole-cloudsync
+			--initpush                               Initialize Primary Pi-hole in "Push" mode
+			--initpull [branch]                      Initialize Secondary Pi-hole in "Pull" mode with optional branch (default: master)
+			--help, -h, -?                           Show this help dialog
+			--version, -v                            Show the current version of pihole-cloudsync
 
 		Examples:
 			'pihole-cloudsync --push' will push (upload) your lists to a Git repo
@@ -257,12 +257,12 @@ EOF
 
 	# Version - Displays version number
 	elif [ "${arg}" == "--version" ] || [ "${arg}" == "-v" ]; then
-		echo 'pihole-cloudsync v'$version;
-		echo 'https://github.com/jgoguen/pihole-cloudsync';
+		printf 'pihole-cloudsync v%s\n' "${version}"
+		printf 'https://github.com/jgoguen/pihole-cloudsync\n'
 
 	# Invalid command line option was passed
 	else
-		echo "Invalid command line option. Try --push, --pull, or --help."
+		printf 'Invalid command line option "%s". Try --push, --pull, or --help.\n' "${arg}" >&2
 		exit 1
 	fi
 done
