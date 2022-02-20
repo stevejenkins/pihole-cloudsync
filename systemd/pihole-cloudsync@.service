@@ -1,0 +1,7 @@
+[Unit]
+Description=pihole cloud sync - %i
+
+[Service]
+Type=oneshot
+EnvironmentFile=-/etc/default/pihole-cloudsync.env
+ExecStart=/usr/local/bin/pihole-cloudsync --%i --branch $BRANCH --destdir $DESTDIR
