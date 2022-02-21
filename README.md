@@ -1,162 +1,226 @@
 # `pihole-cloudsync`
-A script to help synchronize <a target="_blank" 
-href="https://pi-hole.net/">Pi-hole</a> adlist/blocklist, blacklist, whitelist, regex, custom DNS hostnames, and custom CNAME hostnames across multiple Pi-holes using a Git repository.
 
-# Why `pihole-cloudsync`?
-I was running six Pi-holes on three different networks at three different physical locations. I wanted all six Pi-holes to share the same adlists, blacklists, whitelists, and regex files, but it was time-consuming to manually synchronize all of them (modify the local Pi-holes, VPN into the second network and modify those, then VPN into the third network and modify those). I also wanted the ability to share custom DNS hostnames between multiple Pi-holes so that the Pi-hole UI stats display the proper local hostnames instead of IP addresses.
+A script to help synchronize [Pi-hole][pihole] adlist/blocklist, blacklist,
+whitelist, regex, custom DNS hostnames, and custom CNAME hostnames across
+multiple Pi-holes using a Git repository.
 
-I wanted to use Pi-hole's built-in web UI to manage only *one* set of lists on *one* Pi-hole -- and then securely synchronize an unlimited number of additional Pi-holes. I couldn't find an existing script that did exactly what I wanted... so I wrote `pihole-cloudsync`.
+## Why `pihole-cloudsync`?
 
-`pihole-cloudsync` is lightweight enough to use if you're only syncing 2 Pi-holes on a home network, but powerful enough to synchronize virtually *unlimited* Pi-holes on an *unlimited* number of networks.
+I run multiple Pi-hole instances across different locations. I want them all to
+share the same configuration, but manully keeping even one extra instance in
+sync is both time-consuming and begging to have unexpected configuration drift
+causing difficult to diagnose problems. By using `pihole-cloudsync`, I can use
+the standard Pi-hole web UI to manage one single primary Pi-hole and let the
+others automatically pick up all the changes---both additions and deletions.
+
+`pihole-cloudsync` is simple and lightweight enough to use if you only need to
+keep two Pi-hole servers on your home network in sync, but it's also powerful
+enough to easily scale to as many Pi-hole servers as you need across as many
+networks and even physical locations as you need. The limiting factor is what
+the git server hosting the configuration can handle.
 
 Feedback, suggestions, bug fixes, and code contributions are welcome.
 
-# How `pihole-cloudsync` Works
-`pihole-cloudsync` allows you to designate any Pi-hole on any network to act as your "Master" or "Primary." This is the only Pi-hole whose list settings you will need to manage using Pi-hole's built-in web UI. The Primary Pi-hole then uses `pihole-cloudsync` in **Push** mode to *upload* four files to a private Git repository that you control (such as GitHub) that contain:
+## How `pihole-cloudsync` Works
 
-1. Your adlists/blocklists (queried from Pi-hole's database at `/etc/pihole/gravity.db`)
-2. Your domain lists: "exact match" and "regex" versions of your white and black lists (queried from Pi-hole's database at `/etc/pihole/gravity.db`)
-3. Any custom DNS names you've configured via the Pi-hole UI (copied from `/etc/pihole/custom.list`)
-4. Any custom CNAMEs you've configured via the Pi-hole UI (copied from `/etc/dnsmasq.d/05-pihole-custom-cname.conf`)
+`pihole-cloudsync` allows you to designate any Pi-hole on any network to act as
+your primary Pi-hole. This is the only Pi-hole whose settings you will need to
+manage using Pi-hole's built-in web UI. The primary Pi-hole then uses
+`pihole-cloudsync` in **Push** mode to *upload* files to a private Git
+repository that you control (such as GitHub) that contain:
 
-All other Secondary Pi-holes that you wish to keep synchronized use `pihole-cloudsync` in **Pull** mode to *download* the above files from from your private Git repository.
+1. Pi-hole Gravity tables (queried from Pi-hole's database at
+   `/etc/pihole/gravity.db`)
+2. Your domain lists: "exact match" and "regex" versions of your white and black
+   lists (queried from Pi-hole's database at `/etc/pihole/gravity.db`)
+3. Any custom DNS names you've configured via the Pi-hole UI (copied from
+   `/etc/pihole/custom.list`)
+4. Any custom CNAMEs you've configured via the Pi-hole UI (copied from
+   `/etc/dnsmasq.d/05-pihole-custom-cname.conf`)
 
-The script is designed to work with any Git repo that your Pi-holes can access, but I have only personally tested it with GitHub.
+Note that if you run Pi-hole in Docker, your files will likely be located in
+a different place. `pihole-cloudsync` will look for Docker running a container
+with ancestor `pihole/pihole`. If found, `pihole-cloudsync` will look up the
+locations where these files are mounted from the host system and use those paths
+instead. It will also attempt to restart Pi-hole through `docker exec`. It is
+assumed only one Docker container per host may run Pi-hole.
 
-## No more Pi-hole v4 support
-This script was originally written to work on Pi-hole version 4. However, as of Pi-hole version 5, most of the settings needed for sync between Pi-holes is no longer stored in individual text files -- they are now all stored in a single database file called `gravity.db`. The changes required to `pihole-cloudsync` to work with Pi-hole v5 means it will no longer with with version of Pi-hole earlier than v5.
+All other Secondary Pi-holes that you wish to keep synchronized use
+`pihole-cloudsync` in **Pull** mode to *download* the above files from your
+private Git repository. As with **Push** mode, `pihole-cloudsync` will look for
+a Pi-hole Docker container and download files to the appropriate location for
+your Docker container and use `docker exec` to restart Pi-hole.
 
-**Before proceeding, verify that your Primary and *all* Secondary Pi-holes are running Pi-hole v5 or later.**
+The script is designed to work with any Git repo that your Pi-holes can access,
+but I have only personally tested it with GitHub.
 
-# Setup
-Prior to running `pihole-cloudsync`, you must first create a new dedicated Git respository to store your lists, then clone that new repository to all Pi-holes (both Primary and Secondary) that you wish to keep in sync. The easiest way to do that is to fork my own <a target="_blank" href="https://github.com/stevejenkins/my-pihole-lists">`my-pihole-lists`</a> GitHub repository. Don't worry if the example lists in that repo are different than yours. You'll overwrite your forked version of the repo with your own Pi-hole lists the first time you run `pihole-cloudsync` in **Push** mode.
+### Pi-hole v5 only
 
-**On GitHub**
+If you have been running Pi-hole prior to version 5, take note that this script
+will only work with Pi-hole v5 and later.
+
+**Before proceeding, verify that your Primary and *all* Secondary Pi-holes are
+running Pi-hole v5 or later.**
+
+## Setup
+
+Prior to running `pihole-cloudsync`, you must first create a new dedicated git
+respository to store your lists. When initializing in **Push** mode, if you have
+not already cloned the repository to your primary Pi-hole you may pass `--remote
+git-remote` to `pihole-cloudsync` and it will attempt to push the current
+configuration to the git repository. This does require that the git repository
+is currently empty; if you have an existing repository you want to use on your
+primary Pi-hole, you must clone it before running `pihole-cloudsync`.
+
+When initializing in **Pull** mode, you may pass `--remote git-remote` to
+`pihole-cloudsync` and it will attempt to clone the git repository for you. It
+is assumed you have already populated the repository by running
+`pihole-cloudsync` in **Push** mode from your primary Pi-hole.
+
+### On GitHub
+
 1. Sign into GitHub.
-2. Go to https://github.com/stevejenkins/my-pihole-lists.
-3. Press **Fork**.
-4. *Optional:* If you wish to make your forked version of the repo private, press **Settings**, scroll down to the **Danger Zone**, then press **Make private**.
-5. On your new repo's main page, press the **Clone or download** button and copy the **Clone with HTTPS** link to your clipboard.
+1. [Create a new repository][githubnew] and choose a name and optional
+   description.
+1. *Optional but strongly resommended*: Select the **Private** option to make
+   your new repository private.
+1. Do not select any option under **Initialize this repository with**
+1. On your new repository's main page, take note of the git remote for pushing
+   to the new repository.
 
-**On your Primary Pi-hole device**
-1. Install Git (on Raspbian/Debian do `sudo apt-get install git`).
-2. Do `cd /usr/local/bin`.
-3. Install `pihole-cloudsync` with `sudo git clone https://github.com/stevejenkins/pihole-cloudsync.git`.
-4. Create your private local Git repo with `sudo git clone https://github.com/<yourusername>/my-pihole-lists.git` (paste the URL you copied from GitHub).
-5. If you're using a repo name other than `my-pihole-lists`, edit `/usr/local/bin/pihole-cloudsync/pihole-cloudsync` and edit the `personal_git_dir` variable to match your local Git repo location.
-6. Run `/usr/local/bin/pihole-cloudsync/pihole-cloudsync --initpush` to initialize the local Pi-hole in "Push" mode. It will grab your Primary Pi-hole's list files (both from the `gravity.db` database and `/etc/pihole`) and add them to your new local Git repo. The `--initpush` mode should only need to be run once on your Primary Pi-hole.
-7. Run `/usr/local/bin/pihole-cloudsync/pihole-cloudsync --push` to push/upload your Primary Pi-hole's lists from your local Git repo to your remote Git repo. You will have to manually enter your GitHub email address and password the first time you do this, but read below for how to save your login credentials so you can run this script unattended.
+### On your Primary Pi-hole device
 
-**On all Secondary Pi-hole devices**
-1. Install Git (on Raspbian/Debian do `sudo apt-get install git`)
-2. Do `cd /usr/local/bin`
-3. Install `pihole-cloudsync` with `sudo git clone https://github.com/stevejenkins/pihole-cloudsync.git`
-4. Create your private local Git repo with `sudo git clone https://github.com/<yourusername>/my-pihole-lists.git` (paste the URL you copied from GitHub)
-5. If you're using a repo name other than `my-pihole-lists`, edit `/usr/local/bin/pihole-cloudsync/pihole-cloudsync` and edit the `personal_git_dir` variable to match your local Git repo location.
-6. Run `/usr/local/bin/pihole-cloudsync/pihole-cloudsync --initpull` to initialize the local Pi-hole in Pull/Download mode. You will have to manually enter your GitHub email address and password the first time you do this, but read below for how to save your login credentials so you can run this script unattended. The `--initpull` option will also perform your first pull automatically and only needs to be run once on each Secondary Pi-hole. All future pulls can be performed with `/usr/local/bin/pihole-cloudsync/pihole-cloudsync --pull`.
-7. Running `pihole-cloudsync --pull` will pull/download your Primary Pi-hole's lists from your remote Git repo to your Secondary Pi-hole's local Git repo. The `--pull` option will automatically copy the downloaded file(s) to your Pi-hole directory and tell Pi-hole to do a `pihole -g` command to update its lists.
+1. Install Git (on Raspberry Pi OS do `sudo apt install -y git`).
+1. Clone `pihole-cloudsync` somewhere, for example to `/opt`: `sudo git clone
+   https://github.com/jgoguen/pihole-cloudsync.git /opt/pihole-cloudsync`
+1. Link to the `pihole-cloudsync` script: `cd /usr/local/bin && ln -s
+   /opt/pihole-cloudsync/pihole-cloudsync`
+1. Ensure you can push to your repository without entering a username or
+   password. For Github, you can follow their directions for
+   [creating a new SSH key][ghcreatekey] and
+   [adding it to your account][ghaddkey].
+1. Initialize in **Push** mode: `sudo pihole-cloudsync --init --push --remote
+   git@github.com:yourgithub/pihole-settings.git` (remember to use the git
+   remote from the repository you created earlier)
+1. Run `sudo /usr/local/bin/pihole-cloudsync --push` to push/upload your Primary
+   Pi-hole's lists from your local Git repo to your remote Git repo. You may run
+   this manually or you may set up a systemd timer.
 
-# Running `pihole-cloudsync` Unattended
-**The following steps must be performed on each Pi-hole you wish to use with `pihole-cloudsync`.**
+### On all Secondary Pi-hole devices
 
-In order to automate or run `pihole-cloudsync` unattended, you will need to either store your GitHub login credentials locally or create an SSH key for your Pi-hole's root user and upload the public key to GitHub. You will need to do this on the Primary Pi-hole as well as all Secondary Pi-holes.
+1. Install Git (on Raspberry Pi OS do `sudo apt install -y git`).
+1. Clone `pihole-cloudsync` somewhere, for example to `/opt`: `sudo git clone
+   https://github.com/jgoguen/pihole-cloudsync.git /opt/pihole-cloudsync`
+1. Link to the `pihole-cloudsync` script: `cd /usr/local/bin && ln -s
+   /opt/pihole-cloudsync/pihole-cloudsync`
+1. Ensure you can push to your repository without entering a username or
+   password. For Github, you can follow their directions for
+   [creating a new SSH key][ghcreatekey] and
+   [adding it to your account][ghaddkey].
+1. Initialize in **Pull** mode: `sudo pihole-cloudsync --init --pull --remote
+   git@github.com:yourgithub/pihole-settings.git` (remember to use the same
+   remote you used for the primary Pi-hole).
+1. Run `sudo /usr/local/bin/pihole-cloudsync --pull` to pull/download your
+   Pi-hole's lists from your git repository. You may run this manually or you
+   may set up a systemd timer.
 
-The SSH key approach is for more advanced users who don't need me to explain how to do it. To store your Git credentials locally, do the following on each Pi-hole:
+## Automating `pihole-cloudsync`
 
-`cd /usr/local/bin/my-pihole-lists`
+Once `pihole-cloudsync` has been run on each Pi-hole, you can automate your
+primary Pi-hole's "push" and your secondary Pi-holes' "pull" in any number of
+ways. The simplest method is to run a [cron job](#Automating-with-cron) a few
+times a day. If you want more flexibilty over schedule and resource use, you can
+also use [systemd](#Automating-with-systemd) to automate. Both methods are
+explained below.
 
-`sudo git config --global credential.helper store`
+### Automating with cron
 
-The next time you pull from or push to the remote repository, you'll be prompted for your username and password. But you won't have to re-enter them after that. So do a simple:
+The simplest way is to automate `pihole-cloudsync` is to set a "push" cron job
+on your primary Pi-hole that runs regularly, then set a "pull" cron job on each
+secondary Pi-hole that pulls in any changes a few minutes after your Primary
+pushes them.
 
-`sudo git pull`
+Once you can successfully run `pihole-cloudsync --push` from the command line on
+your primary Pi-hole, do `crontab -e` (or `sudo crontab -e` if you're not logged
+in as the root user) and create a cron entry such as:
 
-to enter and save your credentials. Now you can run `pihole-cloudsync` unattended on this Pi-hole device.
+```cron
+00 * * * * sudo /usr/local/bin/pihole-cloudsync --push >/dev/null 2>&1
+```
 
-Again, **the above steps must be performed on each Pi-hole you wish to use with `pihole-cloudsync`.**
+Once you can successfully run `pihole-cloudsync --pull` from the command
+line on each of your secondary Pi-holes, do `sudo crontab -e` and create a cron
+entry that runs 5 minutes after your Primary pushes any changes, such as:
 
-# Automating `pihole-cloudsync`
-Once each Pi-hole's local Git repo has been configured to save your login credentials, you can automate your Primary Pi-hole's "push" and your Secondary Pi-holes' "pull" in any number of ways. The simplest method is to run a [cron job](#Automating-with-cron) a few times a day. If you want more flexibilty over schedule and resource use, you can also use [systemd](#Automating-with-systemd) to automate. Both methods are explained below.
+```cron
+05 * * * * sudo /usr/local/bin/pihole-cloudsync --pull >/dev/null 2>&1
+```
 
-## Automating with cron
-The simplest way is to automate `pihole-cloudsync` is to set a "push" cron job on your Primary Pi-hole that runs a few times a day, then set a "pull" cron job on each Secondary Pi-hole that pulls in any changes a few minutes after your Primary pushes them.
+**NOTE:** On Raspian, the script won't execute via cron without the `sudo`
+command (as shown above). If you're having trouble getting the script to run
+unattended on Raspian, try including `sudo` in the cron command.
 
-Once you can successfully run `pihole-cloudsync --push` from the command line on your Primary Pi-hole, do `crontab -e` (or `sudo crontab -e` if you're not logged in as the root user) and create a cron entry such as:
+### Automating with systemd
 
-`00 01,07,13,19 * * * sudo /usr/local/bin/pihole-cloudsync/pihole-cloudsync --push > /dev/null 2>&1 #Push Master Pi-hole Lists to remote Git repo`
+`pihole-cloudsync` can also be automated with systemd, if your Pi-hole is
+running on a systemd-supported distro. Once you're able to successfully run
+`pihole-cloudsync --push` from the command line on your primary Pi-hole and
+`pihole-cloudsync --pull` from the command line on each of your secondary
+Pi-holes, you can proceed with systemd setup. You must install four files on
+your Pi-hole to ensure a stable and non-intrusve update process: a `.service`
+file, a `.timer` file, a `.slice` file, and an environment file. Examples are
+provided in the `systemd` directory.
 
-And once you can successfully run `pihole-cloudsync --pull` from the command line on each of your Secondary Pi-holes, do `sudo crontab -e` and create a cron entry that runs 5 minutes after your Primary pushes any changes, such as:
+1. Symlink the `.service`, `.timer`, and `.slice` files into
+   `/etc/systemd/system` on your Pi-hole.
+1. Copy the `.env` file into `/etc/default` on your Pi-hole. Make sure the
+   `BRANCH` and `DESTDIR` settings are correct.
+1. Tell systemd you changed its configuration files with `systemctl
+   daemon-reload`.
+1. Enable and start the timer.
 
-`05 01,07,13,19 * * * sudo /usr/local/bin/pihole-cloudsync/pihole-cloudsync --pull > /dev/null 2>&1 #Pull Master Pi-hole Lists from remote Git repo`
-
-**NOTE:** On Raspian, the script won't execute via cron without the `sudo` command (as shown above). If you're having trouble getting the script to run unattended on Raspian, try including `sudo` in the cron command.
-
-## Automating with systemd
-`pihole-cloudsync` pulls can also be automated with systemd, if your Pi-hole is running on a systemd-supported distro. Once you're able to successfully run `pihole-cloudsync --pull` from the command line on each of your Secondary Pi-holes, you can proceed with systemd setup. You must install three `[Unit]` files on your Pi-hole to ensure a stable and non-intrusve update process: a `.service` file, a `.timer` file, and a `.slice` file.
-
-### Quick Start
-1. Copy the each of the three `[Unit]` files in the **systemd Details** section below into `/etc/systemd/system` on your Pi-hole
-2. Tell systemd you changed its configuration files with `systemctl daemon-reload`
-3. Enable and start the service/timer
 ```bash
-# Enable the relevant configs
-systemctl enable pihole-cloudsync-update.service
-systemctl enable pihole-cloudsync-update.timer
+# Assuming you cloned this repo to /opt/pihole-cloudsync
+cd /etc/systemd/system
+sudo ln -s /opt/pihole-cloudsync/systemd/pihole-cloudsync.slice
+sudo ln -s /opt/pihole-cloudsync/systemd/pihole-cloudsync@.service
+sudo ln -s /opt/pihole-cloudsync/systemd/pihole-cloudsync@.timer
 
-# Start the timer
-systemctl start pihole-cloudsync-update.timer
+# Copy the env file then modify for your environment
+sudo cp /opt/pihole-cloudsync/systemd/pihole-cloudsync.env /etc/default/
+
+# For your primary Pi-hole
+systemctl enable pihole-cloudsync@push.timer
+systemctl start pihole-cloudsync@push.timer
+
+# For your secondary Pi-holes
+systemctl enable pihole-cloudsync@pull.timer
+systemctl start pihole-cloudsync@pull.timer
 ```
 
-### systemd Details
-1. **.service** - `/etc/systemd/system/pihole-cloudsync-update.service` - The core service file.  Configured as a 'oneshot' in order to be run via a [systemd timer](https://wiki.archlinux.org/index.php/Systemd/Timers).
-```ini
-[Unit]
-Description=PiHole Cloud Sync Data Puller service
-Wants=pihole-cloudsync-update.timer
+## Updating `pihole-cloudsync`
 
-[Service]
-Type=oneshot
-ExecStart=/usr/local/bin/pihole-cloudsync --pull
-Slice=pihole-cloudsync-update.slice
+To upgrade to the latest version of `pihole-cloudsync`, do the following on
+*all* primary and secondary Pi-holes. Note that this will completely over-write
+any previous modifications you've made to `pihole-cloudsync`.
 
-[Install]
-WantedBy=multi-user.target
+```bash
+cd /opt/pihole-cloudsync
+git fetch --all
+git reset --hard origin/master
+sudo systemctl daemon-reload
 ```
 
-2. **.timer** - `/etc/systemd/system/pihole-cloudsync-update.timer` - The timer file.  Determines when the `.service` file is executed. systemd timers are highly flexible and can be executed under a variety of timed and trigger-based circumstances. The [ArchLinux systemd/Timer documentation](https://wiki.archlinux.org/index.php/Systemd/Timers) is some of the best around. See their [examples](https://wiki.archlinux.org/index.php/Systemd/Timers#Examples) for many more ways to configure this systemd timer unit.
-```ini
-[Unit]
-Description=PiHole Cloud Synd Data Puller timer
-Requires=pihole-cloudsync-update.service
+Your local version of `pihole-cloudsync` is now updated to the lastest release
+version.
 
-[Timer]
-Unit=pihole-cloudsync-update.service
-OnBootSec=15
-OnUnitActiveSec=1h
+## Disclaimer
 
-[Install]
-WantedBy=timers.target
-```
+You are totally responsible for anything this script does to your system.
+Whether it launches a nice game of Tic Tac Toe or global thermonuclear war,
+you're on your own.
 
-3. **.slice** - `/etc/systemd/system/pihole-cloudsync-update.slice` - The slice file.  Determines how much of the total system resources the `.service` is allowed to consume. This slice is in place to keep the update process in check and ensure that there will always be *plenty* of room for the Pi-hole service to answer DNS queries without being obstructed by potential `pihole-cloudsync` updates. If you'd like to learn more about systemd slices, check out [this wiki page](https://wikitech.wikimedia.org/wiki/Systemd_resource_control).
-```ini
-[Unit]
-Description=PiHole Cloud Sync Puller resource limiter slice
-Before=slices.target
-
-[Slice]
-CPUQuota=50%
-```
-*Special thanks to [Conroman16](https://github.com/Conroman16) for contributing the systemd automation instructions*
-
-# Updating `pihole-cloudsync`
-To upgrade to the latest version of `pihole-cloudsync`, do the following on *all* Primary and Secondary Pi-holes. Note that this will completely over-write any previous modifications you've made to `pihole-cloudsync`.
-
-1. Do `cd /usr/local/bin/pihole-cloudsync`
-2. Do `git fetch --all`
-3. Do `git reset --hard origin/master`
-
-Your local version of `pihole-cloudsync` is now updated to the lastest release version.
-
-# Disclaimer
-You are totally responsible for anything this script does to your system. Whether it launches a nice game of Tic Tac Toe or global thermonuclear war, you're on your own. :)
+[pihole]: https://pi-hole.net
+[githubnew]: https://github.com/new
+[ghcreatekey]: https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent
+[ghaddkey]: https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account
