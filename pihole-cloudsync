@@ -39,9 +39,8 @@ do_init=0
 pihole_dir='/etc/pihole'
 gravity_db='/etc/pihole/gravity.db'
 dnsmasq_dir='/etc/dnsmasq.d'
-ad_list='adlist.csv'
+tables=("group" "adlist" "adlist_by_group" "client" "client_by_group" "domainlist" "domainlist_by_group")
 custom_list='custom.list'
-domain_list='domainlist.csv'
 cname_list='05-pihole-custom-cname.conf'
 ###########################################################################
 # SHOULDN'T NEED TO EDIT BELOW THIS LINE
@@ -94,47 +93,77 @@ usage() {
 		-v, --version                   Show the current version of pihole-cloudsync
 EOF
 }
+
 version() {
 	printf 'pihole-cloudsync v%s\n' "${version}"
 }
-push_initialize () {
-	# Go to Pi-hole directory, exit if doesn't exist
-	cd "${pihole_dir}" || exit
 
-	# Verify Custom and CNAME lists exist
-	${SUDO} touch "${custom_list}"
-	${SUDO} touch "${dnsmasq_dir}/${cname_list}"
+export_tables() {
+	# Export from Gravity database
+	for tab in "${tables[@]}"; do
+		${SUDO} sqlite3 "${gravity_db}" -header -csv "SELECT * FROM \"${tab}\"" >"${tab}.csv"
+	done
+}
 
+export_files() {
 	# Copy local Custom and CNAME lists to local Git repo
-	${SUDO} cp "${custom_list}" "${personal_git_dir}"
+	${SUDO} cp "${pihole_dir}/${custom_list}" "${personal_git_dir}"
 	${SUDO} cp "${dnsmasq_dir}/${cname_list}" "${personal_git_dir}"
+}
+
+import_tables() {
+	# Overwrite local database tables
+	for tab in "${tables[@]}"; do
+		${SUDO} sqlite3 "${gravity_db}" "DROP TABLE \"${tab}\""
+		${SUDO} sqlite3 "${gravity_db}" -header -csv ".import ${tab}.csv \"${tab}\""
+	done
+}
+
+import_files() {
+	# Overwrite local files
+	${SUDO} cp "${personal_git_dir}/${custom_list}" "${pihole_dir}"
+	${SUDO} cp "${personal_git_dir}/${cname_list}" "${dnsmasq_dir}"
+}
+
+do_git_push() {
+	cd "${personal_git_dir}" || exit
+	rightnow=$(date +"%B %e, %Y %l:%M%p")
+	${SUDO} git add .
+	${SUDO} git commit -a -m "Updated ${rightnow}" -q
+	${SUDO} git push -q -u origin "${git_branch}"
+}
+
+push_initialize () {
+	# Verify Custom and CNAME lists exist
+	${SUDO} touch "${pihole_dir}/${custom_list}"
+	${SUDO} touch "${dnsmasq_dir}/${cname_list}"
 
 	# Go to local Git repo directory
 	if [ ! -d "${personal_git_dir}" ]; then
 		${SUDO} mkdir "${personal_git_dir}"
 	fi
-	cd "${personal_git_dir}" || exit
 
-	# Export Ad and Domain lists from Gravity database
-	${SUDO} sqlite3 "${gravity_db}" -header -csv "SELECT * FROM adlist" >"${ad_list}"
-	${SUDO} sqlite3 "${gravity_db}" -header -csv "SELECT * FROM domainlist" >"${domain_list}"
-
-	# Add all lists to local Git repo
-	if [ ! -d ./.git ]; then
-		${SUDO} git init
+	if [ ! -d "${personal_git_dir}/.git" ]; then
+		${SUDO} git init "${personal_git_dir}"
 		${SUDO} git remote add origin "${git_remote}"
 	fi
-	${SUDO} git add .
-	rightnow=$(date +"%B %e, %Y %l:%M%p")
-	${SUDO} git commit -a -m "Updated ${rightnow}" -q
 	${SUDO} git branch -M "${git_branch}"
-	${SUDO} git push -q -u origin "${git_branch}"
+
+	# Add all lists to local Git repo
+	export_files
+	export_tables
+
+	do_git_push
 
 	printf 'Local Pi-hole initialized in Push mode and first push successfully completed.\n'
 	printf 'Future pushes can now be performed with "pihole-cloudsync --push".\n'
 }
+
 pull_initialize () {
 	# Go to Pi-hole directory, exit if doesn't exist
+	if [ ! -d "${personal_git_dir}" ]; then
+		${SUDO} git clone "${git_remote}" "${personal_git_dir}"
+	fi
 	cd "${personal_git_dir}" || exit
 
 	# Update local Git repo from remote Git repo
@@ -148,15 +177,8 @@ pull_initialize () {
 	# shellcheck disable=SC2086
 	${SUDO} ${DOCKER} service pihole-FTL stop
 
-	# Overwrite local files
-	${SUDO} cp "${custom_list}" "${pihole_dir}"
-	${SUDO} cp "${cname_list}" "${dnsmasq_dir}"
-
-	# Overwrite local database tables
-	${SUDO} sqlite3 "${gravity_db}" "DROP TABLE adlist;"
-	${SUDO} sqlite3 "${gravity_db}" -header -csv ".import adlist.csv adlist"
-	${SUDO} sqlite3 "${gravity_db}" "DROP TABLE domainlist;"
-	${SUDO} sqlite3 "${gravity_db}" -header -csv ".import domainlist.csv domainlist"
+	import_files
+	import_tables
 
 	# Restart Pi-hole to pick up changes
 	# shellcheck disable=SC2086
@@ -166,20 +188,13 @@ pull_initialize () {
 	printf 'Local Pi-hole initialized in Pull mode and first pull successfully completed\n'
 	printf 'Future pulls can now be perfomed with "pihole-cloudsync --pull"\n'
 }
-push () {
-	 # Go to Pi-hole directory, exit if doesn't exist
-	cd "${pihole_dir}" || exit
 
-	# Copy local Custom and CNAME lists to local Git repo
-	${SUDO} cp "${custom_list}" "${personal_git_dir}"
-	${SUDO} cp "${dnsmasq_dir}/${cname_list}" "${personal_git_dir}"
+push () {
+	export_files
+	export_tables
 
 	# Go to local Git repo directory
 	cd "${personal_git_dir}" || exit
-
-	# Export Ad and Domain lists from Gravity database
-	${SUDO} sqlite3 "${gravity_db}" -header -csv "SELECT * FROM adlist" >"${ad_list}"
-	${SUDO} sqlite3 "${gravity_db}" -header -csv "SELECT * FROM domainlist" >"${domain_list}"
 
 	# Compare local files to remote Git repo
 	${SUDO} git remote update > /dev/null
@@ -188,18 +203,14 @@ push () {
 	CHANGED=$(${SUDO} git --work-tree="${personal_git_dir}" status --porcelain)
 	if [ -n "${CHANGED}" ]; then
 		printf 'Local Pi-hole lists are different than remote Git repo. Updating remote repo...\n';
-		rightnow=$(date +"%B %e, %Y %l:%M%p")
-		# Remove -q option if you don't want to run in "quiet" mode
-		${SUDO} git commit -a -m "Updated ${rightnow}" -q
-		${SUDO} git push -q
+		do_git_push
 		printf 'Done!\n';
-		exit 0
 	else
 		# If local files are the same as remote, do nothing and exit
 		printf 'Remote Git repo matches local Pi-hole lists. No further action required.\n';
-		exit 0
 	fi
 }
+
 pull () {
 	# Go to Pi-hole directory, exit if doesn't exist
 	cd "${personal_git_dir}" || exit
@@ -214,19 +225,15 @@ pull () {
 		${SUDO} git reset --hard "origin/${git_branch}" -q
 		# shellcheck disable=SC2086
 		${SUDO} ${DOCKER} service pihole-FTL stop
-		${SUDO} cp "${custom_list}" "${pihole_dir}"
-		${SUDO} cp "${cname_list}" "${dnsmasq_dir}"
-		${SUDO} sqlite3 "${gravity_db}" "DROP TABLE adlist;"
-		${SUDO} sqlite3 "${gravity_db}" -header -csv ".import adlist.csv adlist"
-		${SUDO} sqlite3 "${gravity_db}" "DROP TABLE domainlist;"
-		${SUDO} sqlite3 "${gravity_db}" -header -csv ".import domainlist.csv domainlist"
+
+		import_files
+		import_tables
+
 		# shellcheck disable=SC2086
 		${SUDO} ${DOCKER} pihole -g
 		printf 'Done!\n';
-		exit 0
 	else
 		printf 'Local Pi-hole lists match remote Git repo. No further action required.\n';
-		exit 0
 	fi
 }
 
