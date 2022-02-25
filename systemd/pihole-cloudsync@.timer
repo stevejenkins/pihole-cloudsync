@@ -1,0 +1,10 @@
+[Unit]
+Description=pihole cloud sync timer
+Wants=network-online.target
+
+[Timer]
+OnCalendar=*-*-* *:00/5:00
+RandomizedDelaySec=5min
+
+[Install]
+WantedBy=timers.target

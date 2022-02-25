@@ -1,0 +1,6 @@
+[Unit]
+Description=pihole-cloudsync resource limiter slice
+Before=slices.target
+
+[Slice]
+CPUQuota=50%
