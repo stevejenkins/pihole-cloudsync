@@ -149,10 +149,10 @@ pull_initialize () {
     $SUDO cp $cname_list $dnsmasq_dir
 
 	# Overwrite local database tables
-	$SUDO sqlite3 $gravity_db "DROP TABLE adlist;"
+	$SUDO sqlite3 $gravity_db "DELETE FROM adlist;"
 	$SUDO sqlite3 $gravity_db -header -csv ".import adlist.csv adlist"
 	if [ -s domainlist.csv ]; then
-		$SUDO sqlite3 $gravity_db "DROP TABLE domainlist;"
+		$SUDO sqlite3 $gravity_db "DELETE FROM domainlist;"
 		$SUDO sqlite3 $gravity_db -header -csv ".import domainlist.csv domainlist"
 	fi
 
@@ -211,10 +211,10 @@ pull () {
                 $SUDO service pihole-FTL stop
                 $SUDO cp $custom_list $pihole_dir
                 $SUDO cp $cname_list $dnsmasq_dir
-                $SUDO sqlite3 $gravity_db "DROP TABLE adlist;"
+                $SUDO sqlite3 $gravity_db "DELETE FROM adlist;"
                 $SUDO sqlite3 $gravity_db -header -csv ".import adlist.csv adlist"
                 if [ -s domainlist.csv ]; then
-                    $SUDO sqlite3 $gravity_db "DROP TABLE domainlist;"
+                    $SUDO sqlite3 $gravity_db "DELETE FROM domainlist;"
                     $SUDO sqlite3 $gravity_db -header -csv ".import domainlist.csv domainlist"
                 fi
 		$SUDO pihole -g
