@@ -148,8 +148,13 @@ pull_initialize () {
     $SUDO cp $custom_list $pihole_dir
     $SUDO cp $cname_list $dnsmasq_dir
 
-    # Overwrite local database tables
-    import_tables
+	# Overwrite local database tables
+	$SUDO sqlite3 $gravity_db "DROP TABLE adlist;"
+	$SUDO sqlite3 $gravity_db -header -csv ".import adlist.csv adlist"
+	if [ -s domainlist.csv ]; then
+		$SUDO sqlite3 $gravity_db "DROP TABLE domainlist;"
+		$SUDO sqlite3 $gravity_db -header -csv ".import domainlist.csv domainlist"
+	fi
 
     # Restart Pi-hole to pick up changes
     $SUDO ${DOCKER} pihole -g
@@ -195,25 +200,30 @@ pull () {
     # Go to Pi-hole directory, exit if doesn't exist
     cd $personal_git_dir || exit
 
-    # Update local Git repo from remote Git repo
-    $SUDO git remote update > /dev/null
-    CHANGED=$($SUDO git log HEAD..origin/${git_branch} --oneline)
-    if [ -n "${CHANGED}" ]; then
-        echo 'Remote Git repo is different than local Pi-hole lists. Updating local lists...';
-        # Remove -q option if you don't want to run in "quiet" mode
-        $SUDO git fetch --all -q
-        $SUDO git reset --hard "origin/${git_branch}" -q
-        $SUDO ${DOCKER} service pihole-FTL stop
-        $SUDO cp $custom_list $pihole_dir
-        $SUDO cp $cname_list $dnsmasq_dir
-        import_tables
-        $SUDO ${DOCKER} pihole -g
-        echo 'Done!';
-        exit 0
-    else
-        echo 'Local Pi-hole lists match remote Git repo. No further action required.';
-        exit 0
-    fi
+	# Update local Git repo from remote Git repo
+	$SUDO git remote update > /dev/null
+	CHANGED=$($SUDO git log HEAD..origin/master --oneline)
+	if [ -n "${CHANGED}" ]; then
+                echo 'Remote Git repo is different than local Pi-hole lists. Updating local lists...';
+                # Remove -q option if you don't want to run in "quiet" mode
+                $SUDO git fetch --all -q
+		$SUDO git reset --hard origin/master -q
+                $SUDO service pihole-FTL stop
+                $SUDO cp $custom_list $pihole_dir
+                $SUDO cp $cname_list $dnsmasq_dir
+                $SUDO sqlite3 $gravity_db "DROP TABLE adlist;"
+                $SUDO sqlite3 $gravity_db -header -csv ".import adlist.csv adlist"
+                if [ -s domainlist.csv ]; then
+                    $SUDO sqlite3 $gravity_db "DROP TABLE domainlist;"
+                    $SUDO sqlite3 $gravity_db -header -csv ".import domainlist.csv domainlist"
+                fi
+		$SUDO pihole -g
+                echo 'Done!';
+                exit 0
+        else
+                echo 'Local Pi-hole lists match remote Git repo. No further action required.';
+                exit 0
+        fi
 }
 ###########################################################################
 # Check to see whether a command line option was provided
