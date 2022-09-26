@@ -34,8 +34,8 @@ Prior to running `pihole-cloudsync`, you must first create a new dedicated Git r
 **On GitHub**
 1. Sign into GitHub.
 2. Go to https://github.com/stevejenkins/my-pihole-lists.
-3. Press **Fork**.
-4. *Optional:* If you wish to make your forked version of the repo private, press **Settings**, scroll down to the **Danger Zone**, then press **Make private**.
+3. Press the green button **Use This Template**.
+4. Enter a name for the new repo, and choose "Private".
 5. On your new repo's main page, press the **Clone or download** button and copy the **Clone with HTTPS** link to your clipboard.
 
 **On your Primary Pi-hole device**
