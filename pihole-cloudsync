@@ -7,8 +7,8 @@
 # Steve Jenkins (stevejenkins.com)
 # https://github.com/stevejenkins/pihole-cloudsync
 
-version='5.0'
-update='December 26, 2020'
+version='5.1'
+update='June 21, 2023'
 
 # SETUP
 # Follow the instructions in the README to set up your own private Git
@@ -91,11 +91,23 @@ pull_initialize () {
 	$SUDO cp $custom_list $pihole_dir
 	$SUDO cp $cname_list $dnsmasq_dir
 
-	# Overwrite local database tables
-	$SUDO sqlite3 $gravity_db "DROP TABLE adlist;"
-	$SUDO sqlite3 $gravity_db -header -csv ".import adlist.csv adlist"
-	$SUDO sqlite3 $gravity_db "DROP TABLE domainlist;"
-	$SUDO sqlite3 $gravity_db -header -csv ".import domainlist.csv domainlist"
+	# Update local database tables
+	$SUDO sqlite3 /etc/pihole/gravity.db \
+			'.headers on' \
+			'.mode csv' \
+			'DROP TABLE IF EXISTS adlist_tmp' \
+			'.import adlist.csv adlist_tmp' \
+			'DELETE FROM adlist;' \
+			'INSERT INTO adlist (id, address, enabled, date_added, date_modified, comment, date_updated, "number", invalid_domains, status) SELECT CAST(id AS INTEGER), CAST(address AS TEXT), CAST(enabled AS BOOLEAN), CAST(date_added AS INTEGER), CAST(date_modified AS INTEGER), CAST(comment AS TEXT), CAST(date_updated AS INTEGER), CAST(number AS INTEGER), CAST(invalid_domains AS INTEGER), CAST(status AS INTEGER) FROM adlist_tmp;' \
+			'DROP TABLE adlist_tmp;'
+	$SUDO sqlite3 /etc/pihole/gravity.db \
+		'.headers on' \
+		'.mode csv' \
+		'DROP TABLE IF EXISTS domainlist_tmp;' \
+		'.import domainlist.csv domainlist_tmp' \
+		'DELETE FROM domainlist;' \
+		'INSERT INTO domainlist (id, "type", domain, enabled, date_added, date_modified, comment) SELECT CAST(id AS INTEGER), CAST("type" AS INTEGER), CAST("domain" AS TEXT), CAST(enabled AS BOOLEAN), CAST(date_added AS INTEGER), CAST(date_modified AS INTEGER), CAST(comment AS TEXT) FROM domainlist_tmp;' \
+		'DROP TABLE domainlist_tmp;'
 
 	# Restart Pi-hole to pick up changes
 	$SUDO pihole -g
