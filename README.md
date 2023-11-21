@@ -29,7 +29,7 @@ This script was originally written to work on Pi-hole version 4. However, as of 
 **Before proceeding, verify that your Primary and *all* Secondary Pi-holes are running Pi-hole v5 or later.**
 
 # Setup
-Prior to running `pihole-cloudsync`, you must first create a new dedicated Git repository to store your lists, then clone that new repository to all Pi-holes (both Primary and Secondary) that you wish to keep in sync. The easiest way to do that is to fork my own <a target="_blank" href="https://github.com/stevejenkins/my-pihole-lists">`my-pihole-lists`</a> GitHub repository. Don't worry if the example lists in that repo are different than yours. You'll overwrite your forked version of the repo with your own Pi-hole lists the first time you run `pihole-cloudsync` in **Push** mode.
+Prior to running `pihole-cloudsync`, you must first create a new dedicated Git repository to store your lists, then clone that new repository to all Pi-holes (both Primary and Secondary) that you wish to keep in sync. The easiest way to do that is to fork my <a target="_blank" href="https://github.com/stevejenkins/my-pihole-lists">`my-pihole-lists`</a> GitHub repo as a **template**. Do not simply create a regular fork of my example repository. When you fork as a template instead, GitHub will allow you to set your new repository as "Private." Don't worry if the example lists in the example repo are different than yours. You'll overwrite your forked version of the repo with your own Pi-hole lists the first time you run `pihole-cloudsync` in **Push** mode.
 
 **On GitHub**
 1. Sign into GitHub.
