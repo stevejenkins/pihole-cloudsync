@@ -29,7 +29,7 @@ This script was originally written to work on Pi-hole version 4. However, as of 
 **Before proceeding, verify that your Primary and *all* Secondary Pi-holes are running Pi-hole v5 or later.**
 
 # Setup
-Prior to running `pihole-cloudsync`, you must first create a new dedicated Git respository to store your lists, then clone that new repository to all Pi-holes (both Primary and Secondary) that you wish to keep in sync. The easiest way to do that is to fork my own <a target="_blank" href="https://github.com/stevejenkins/my-pihole-lists">`my-pihole-lists`</a> GitHub repository. Don't worry if the example lists in that repo are different than yours. You'll overwrite your forked version of the repo with your own Pi-hole lists the first time you run `pihole-cloudsync` in **Push** mode.
+Prior to running `pihole-cloudsync`, you must first create a new dedicated Git repository to store your lists, then clone that new repository to all Pi-holes (both Primary and Secondary) that you wish to keep in sync. The easiest way to do that is to fork my own <a target="_blank" href="https://github.com/stevejenkins/my-pihole-lists">`my-pihole-lists`</a> GitHub repository. Don't worry if the example lists in that repo are different than yours. You'll overwrite your forked version of the repo with your own Pi-hole lists the first time you run `pihole-cloudsync` in **Push** mode.
 
 **On GitHub**
 1. Sign into GitHub.
@@ -76,7 +76,7 @@ to enter and save your credentials. Now you can run `pihole-cloudsync` unattende
 Again, **the above steps must be performed on each Pi-hole you wish to use with `pihole-cloudsync`.**
 
 # Automating `pihole-cloudsync`
-Once each Pi-hole's local Git repo has been configured to save your login credentials, you can automate your Primary Pi-hole's "push" and your Secondary Pi-holes' "pull" in any number of ways. The simplest method is to run a [cron job](#Automating-with-cron) a few times a day. If you want more flexibilty over schedule and resource use, you can also use [systemd](#Automating-with-systemd) to automate. Both methods are explained below.
+Once each Pi-hole's local Git repo has been configured to save your login credentials, you can automate your Primary Pi-hole's "push" and your Secondary Pi-holes' "pull" in any number of ways. The simplest method is to run a [cron job](#Automating-with-cron) a few times a day. If you want more flexibility over schedule and resource use, you can also use [systemd](#Automating-with-systemd) to automate. Both methods are explained below.
 
 ## Automating with cron
 The simplest way is to automate `pihole-cloudsync` is to set a "push" cron job on your Primary Pi-hole that runs a few times a day, then set a "pull" cron job on each Secondary Pi-hole that pulls in any changes a few minutes after your Primary pushes them.
@@ -92,7 +92,7 @@ And once you can successfully run `pihole-cloudsync --pull` from the command lin
 **NOTE:** On Raspian, the script won't execute via cron without the `sudo` command (as shown above). If you're having trouble getting the script to run unattended on Raspian, try including `sudo` in the cron command.
 
 ## Automating with systemd
-`pihole-cloudsync` pulls can also be automated with systemd, if your Pi-hole is running on a systemd-supported distro. Once you're able to successfully run `pihole-cloudsync --pull` from the command line on each of your Secondary Pi-holes, you can proceed with systemd setup. You must install three `[Unit]` files on your Pi-hole to ensure a stable and non-intrusve update process: a `.service` file, a `.timer` file, and a `.slice` file.
+`pihole-cloudsync` pulls can also be automated with systemd, if your Pi-hole is running on a systemd-supported distro. Once you're able to successfully run `pihole-cloudsync --pull` from the command line on each of your Secondary Pi-holes, you can proceed with systemd setup. You must install three `[Unit]` files on your Pi-hole to ensure a stable and non-intrusive update process: a `.service` file, a `.timer` file, and a `.slice` file.
 
 ### Quick Start
 1. Copy the each of the three `[Unit]` files in the **systemd Details** section below into `/etc/systemd/system` on your Pi-hole
