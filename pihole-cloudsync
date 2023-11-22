@@ -67,8 +67,8 @@ DB_DUMP_FILE="db_dump.sql"
 
 # Force sudo if not running with root privileges
 SUDO=''
-if [ "$EUID" -ne 0 ]; then
-    SUDO='sudo'
+if [ "$EUID" -ne 0 ];
+  then SUDO='sudo'
 fi
 
 # Attempt to detect pihole running in Docker
@@ -149,7 +149,12 @@ pull_initialize () {
     $SUDO cp $cname_list $dnsmasq_dir
 
     # Overwrite local database tables
-    import_tables
+    $SUDO sqlite3 $gravity_db "DELETE FROM adlist;"
+    $SUDO sqlite3 $gravity_db -header -csv ".import --skip 1 adlist.csv adlist"
+    if [ -s domainlist.csv ]; then
+        $SUDO sqlite3 $gravity_db "DELETE FROM domainlist;"
+        $SUDO sqlite3 $gravity_db -header -csv ".import --skip 1 domainlist.csv domainlist"
+    fi
 
     # Restart Pi-hole to pick up changes
     $SUDO ${DOCKER} pihole -g
@@ -197,60 +202,69 @@ pull () {
 
     # Update local Git repo from remote Git repo
     $SUDO git remote update > /dev/null
-    CHANGED=$($SUDO git log HEAD..origin/${git_branch} --oneline)
+    CHANGED=$($SUDO git log HEAD..origin/master --oneline)
     if [ -n "${CHANGED}" ]; then
-        echo 'Remote Git repo is different than local Pi-hole lists. Updating local lists...';
-        # Remove -q option if you don't want to run in "quiet" mode
-        $SUDO git fetch --all -q
-        $SUDO git reset --hard "origin/${git_branch}" -q
-        $SUDO ${DOCKER} service pihole-FTL stop
-        $SUDO cp $custom_list $pihole_dir
-        $SUDO cp $cname_list $dnsmasq_dir
-        import_tables
-        $SUDO ${DOCKER} pihole -g
-        echo 'Done!';
-        exit 0
-    else
-        echo 'Local Pi-hole lists match remote Git repo. No further action required.';
-        exit 0
-    fi
+                echo 'Remote Git repo is different than local Pi-hole lists. Updating local lists...';
+                # Remove -q option if you don't want to run in "quiet" mode
+                $SUDO git fetch --all -q
+        $SUDO git reset --hard origin/master -q
+                $SUDO service pihole-FTL stop
+                $SUDO cp $custom_list $pihole_dir
+                $SUDO cp $cname_list $dnsmasq_dir
+                $SUDO sqlite3 $gravity_db "DELETE FROM adlist;"
+                $SUDO sqlite3 $gravity_db -header -csv ".import --skip 1 adlist.csv adlist"
+                if [ -s domainlist.csv ]; then
+                    $SUDO sqlite3 $gravity_db "DELETE FROM domainlist;"
+                    $SUDO sqlite3 $gravity_db -header -csv ".import --skip 1 domainlist.csv domainlist"
+                fi
+        $SUDO pihole -g
+                echo 'Done!';
+                exit 0
+        else
+                echo 'Local Pi-hole lists match remote Git repo. No further action required.';
+                exit 0
+        fi
 }
 ###########################################################################
 # Check to see whether a command line option was provided
-if [ -z "$1" ]; then
-        echo "Missing command line option. Try --push, --pull, or --help."
-        exit 1
+if [ -z "$1" ];
+  then
+    echo "Missing command line option. Try --push, --pull, or --help."
+    exit 1
 fi
 # Determine which action to perform (InitPush, InitPull, Push, Pull, or Help)
 for arg in "$@"; do
     # Initialize - adds primary Pi-hole's lists to local Git repo before first push/upload
-    if [ "$arg" == "--initpush" ]; then
-        echo "$arg option detected. Initializing local Git repo for Push/Upload.";
-        push_initialize
-        exit 0
+    if [ "$arg" == "--initpush" ];
+    then
+    echo "$arg option detected. Initializing local Git repo for Push/Upload.";
+    push_initialize
+    exit 0
     # Initialize - adds primary Pi-hole's lists to local Git repo before first push/upload
-    elif [ "$arg" == "--initpull" ]; then
-        echo "$arg option detected. Initializing local Git repo for Pull/Download.";
-        shift
-        [ -n "$1" ] && git_branch="$1"
-        pull_initialize
-        exit 0
+    elif [ "$arg" == "--initpull" ];
+    then
+    echo "$arg option detected. Initializing local Git repo for Pull/Download.";
+    pull_initialize
+    exit 0
     # Push / Upload - Pushes updated local Pi-hole lists to remote Git repo
-    elif [ "$arg" == "--push" ] || [ "$arg" == "--upload" ] || [ "$arg" == "--up" ] || [ "$arg" == "-u" ]; then
-        echo "$arg option detected. Running in Push/Upload mode."
-        push
-        exit 0
+    elif [ "$arg" == "--push" ] || [ "$arg" == "--upload" ] || [ "$arg" == "--up" ] || [ "$arg" == "-u" ];
+    then
+    echo "$arg option detected. Running in Push/Upload mode."
+    push
+    exit 0
     # Pull / Download - Pulls updated Pi-hole lists from remote Git repo
-    elif [ "$arg" == "--pull" ] || [ "$arg" == "--download" ] || [ "$arg" == "--down" ]|| [ "$arg" == "-d" ]; then
+    elif [ "$arg" == "--pull" ] || [ "$arg" == "--download" ] || [ "$arg" == "--down" ]|| [ "$arg" == "-d" ];
+    then
         echo "$arg option detected. Running in Pull/Download mode."
         shift
         [ -n "$1" ] && git_branch="$1"
         pull
         exit 0
     # Help - Displays help dialog
-    elif [ "$arg" == "--help" ] || [ "$arg" == "-h" ] || [ "$arg" == "-?" ]; then
-        cat <<- EOF
-        Usage: pihole-cloudsync <option>
+    elif [ "$arg" == "--help" ] || [ "$arg" == "-h" ] || [ "$arg" == "-?" ];
+    then
+    cat << EOF
+Usage: pihole-cloudsync <option>
 
         Options:
             --push, --upload, --up, -u               Push (upload) your Pi-hole lists to a remote Git repo
@@ -269,9 +283,10 @@ for arg in "$@"; do
 EOF
 
     # Version - Displays version number
-    elif [ "$arg" == "--version" ] || [ "$arg" == "-v" ]; then
-        echo 'pihole-cloudsync v'$version' - Updated '"$update";
-        echo 'https://github.com/stevejenkins/pihole-cloudsync';
+    elif [ "$arg" == "--version" ] || [ "$arg" == "-v" ];
+    then
+    echo 'pihole-cloudsync v'$version' - Updated '"$update";
+    echo 'https://github.com/stevejenkins/pihole-cloudsync';
 
     # Invalid command line option was passed
     else
